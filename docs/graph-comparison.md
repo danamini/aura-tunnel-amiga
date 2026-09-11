@@ -3,8 +3,9 @@
 The earlier Amiga graph deliberately evaluated only two candidates per rendered
 frame for 15 seconds. That was presentation pacing, not a speed benchmark.
 The native calculation now runs all 1,363 candidates immediately, including its
-buffer and horizon initialisation, and holds the result for 6.4 seconds from
-scene entry. Three precalculated plots follow for 3.84 seconds in total.
+buffer and horizon initialisation, and holds the result for 2.56 seconds from
+scene entry. Three precalculated plots follow in 2.56-second slots, each with
+a 1.28-second vertical slide and a 1.28-second hold.
 
 The Spectrum baseline is the corrected standalone ROM BASIC benchmark from
 [Aura Tunnel](https://github.com/danamini/aura-tunnel): 557,027,926 contended

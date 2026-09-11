@@ -15,17 +15,9 @@ def generate(font,text,output):
                     for (x0,y0),(x1,y1) in zip(path,path[1:]):
                         dx=x1-x0;dy=y1-y0
                         t=max(0,min(1,((px-x0)*dx+(py-y0)*dy)/(dx*dx+dy*dy)))
-                        if math.hypot(px-x0-t*dx,py-y0-t*dy)<=1.15:lit=True
+                        if math.hypot(px-x0-t*dx,py-y0-t*dy)<=2.45:lit=True
                 pattern|=int(lit)<<y
             columns.append(pattern)
-    code=bytearray();offsets={}
-    for pattern in sorted(set(columns)):
-        offsets[pattern]=len(code)
-        for y in range(GLYPH_HEIGHT):
-            if pattern&(1<<y):code+=struct.pack('>HH',0x8b29,y*80)
-        code+=b'\x4e\x75'
-    assert len(code)<32768
-    (output/'hires-code.bin').write_bytes(code)
     im=Image.new('1',(len(columns),GLYPH_HEIGHT))
     for x,p in enumerate(columns):
         for y in range(GLYPH_HEIGHT):im.putpixel((x,y),(p>>y)&1)
@@ -33,4 +25,4 @@ def generate(font,text,output):
     width=len(columns)+656
     bitmap=bytes(sum(((columns[(x+b)%len(columns)]>>y)&1)<<(7-b) for b in range(8))
                  for y in range(GLYPH_HEIGHT) for x in range(0,width,8))
-    return [offsets[p] for p in columns*2],len(columns),bitmap,width//8
+    return len(columns),bitmap,width//8

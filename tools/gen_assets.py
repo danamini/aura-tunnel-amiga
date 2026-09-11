@@ -60,9 +60,6 @@ put('RUN_SPEEDS',bits(text_image([(32,0,'SLOW'),(240,0,'FAST')])) )
 put('GRAPH_COMPARE',bits(text_image([(8,0,'ZX ROM BASIC: 159.15S / 1363 POINTS'),(8,12,'A500 NATIVE:      MS   ~     X FASTER'),(8,24,'FIXED POINT VS BASIC / NOT CPU RATIO')],36)))
 put('GRAPH_LIVE_TITLE',bits(text_image([(8,0,'LIVE 68000 / FIXED-POINT EXP')])) )
 put('GRAPH_BAKED_TITLE',bits(text_image([(8,0,'PRECALCULATED / BLITTER PLOT')])) )
-put('GRAPH_LISTING',bits(text_image([(8,0,'Z=78*EXP(-(C*C+D*D)/1400)'),
- (8,12,'X1=X+COS(PI/4)*Y'),(8,24,'Y1=Z+COS(PI/4)*Y')],36)))
-
 put('SINE_ROWS',words([round(math.sin(i*math.tau/256)*16)*40 for i in range(256)]))
 put('SINE',words([round(math.sin(i*math.tau/256)*16) for i in range(256)]))
 
@@ -78,10 +75,9 @@ for c in bigtext:
 big_columns=column_stream
 symbols.append(f'BIGWIDTH equ {len(column_stream)}')
 from hires_font import generate as generate_hires,GLYPH_HEIGHT
-hi_columns,hi_width,hi_bitmap,hi_stride=generate_hires(mod,bigtext,OUT)
+hi_width,hi_bitmap,hi_stride=generate_hires(mod,bigtext,OUT)
 put('HI_BITMAP',hi_bitmap)
 symbols.extend([f'HI_STRIDE equ {hi_stride}',f'HI_GLYPH_HEIGHT equ {GLYPH_HEIGHT}'])
-put('HICOLS',words(hi_columns))
 hi_base=(56-GLYPH_HEIGHT)//2
 put('HI_SINE',words([round(hi_base*math.sin(i*math.tau/512))*80 for i in range(512)]))
 symbols.append(f'HI_BASE_ROW equ {hi_base}')
@@ -111,6 +107,19 @@ for phase in range(64):
             y+=count
         stretch+=words([0xffff])
     stretch_index.append(stretch_cache[key])
+# OCS chrome: icy silver sky, razor-white horizon, dark reflection seam,
+# then blue steel. Sample in unstretched coordinates so the finish breathes
+# with the existing blitter stretch, without another bitmap or CPU pixel pass.
+chrome_stops=[(0,0x345),(8,0x678),(14,0xabc),(20,0xeff),(25,0xfff),
+              (27,0x112),(30,0x124),(35,0x247),(41,0x58b),(47,0x9df),(55,0xeef)]
+def chrome_at(y):
+    y=max(0,min(55,y))
+    for (a,ca),(b,cb) in zip(chrome_stops,chrome_stops[1:]):
+        if y<=b:
+            return sum(round(((ca>>shift)&15)+(((cb>>shift)&15)-((ca>>shift)&15))*(y-a)/(b-a))<<shift for shift in (8,4,0))
+    return chrome_stops[-1][1]
+put('HI_CHROME',words([chrome_at(27.5+(band*4+1.5-27.5)/(.62+.38*math.cos(phase*math.tau/64)))
+                      for phase in range(64) for band in range(14)]))
 put('HI_STRETCH_INDEX',words(stretch_index));put('HI_STRETCH',stretch);put('ZERO_ROW',bytes(80))
 snake='        AURA TUNNEL        TUBE... BOX... STAR... TRUE HI-RES... GIANT LETTERS...   NO DOUBLE BUFFER - WE RACE THE BEAM...   THE STACK POINTER IS THE RENDERER...   SNAKE SNAKE SNAKE...   SPECTRUM AURA GOES 8-BIT...      '
 put('SNAKETEXT',snake.encode()+b'\0')
@@ -133,21 +142,21 @@ put('BIGCOLS',words([offsets[c] for c in big_columns*2]))
 put('SNAKECOLS',words([offsets[c] for c in snake_columns*2]))
 symbols.append(f'SNAKEWIDTH equ {len(snake_columns)}')
 
-# Native line-mode tunnel: six twisted octagonal rings plus depth rails.
+# Native line-mode tunnel: ten twisted octagonal rings plus depth rails.
 # Store vertices, not full frames or per-pixel masks; the blitter draws them.
 tunnel=bytearray();idx=[]
 for f in range(128):
     idx.append(len(tunnel));rings=[]
-    depths=sorted(((ring*128/6+f)%128)/128 for ring in range(6))
+    depths=sorted(((ring*128/10+f)%128)/128 for ring in range(10))
     for depth in depths:
-        radius=9+143*depth*depth
+        radius=2+153*depth*depth*depth
         cx=160+14*math.sin(f*math.tau/128+depth*2)
         cy=112+6*math.cos(f*math.tau/128+depth*3)
         angle=f*math.tau/128*.25+depth*.45
         vertices=[(max(2,min(317,round(cx+radius*math.cos(i*math.tau/8+angle)))),
                    max(26,min(196,round(cy+radius*.54*math.sin(i*math.tau/8+angle))))) for i in range(8)]
         style=2 if depth<.35 else 3 if depth>.8 else 1
-        tunnel+=words([style]+[v for xy in vertices+[vertices[0]] for v in xy])
+        tunnel+=words([style])+bytes(v for x,y in vertices+[vertices[0]] for v in (x//2,y))
         rings.append((style,vertices))
     if f==20:
         preview=Image.new('RGB',(320,256),(3,5,20));pd=ImageDraw.Draw(preview)
@@ -157,20 +166,10 @@ for f in range(128):
         preview.resize((960,768),Image.Resampling.NEAREST).save(OUT/'neon-tunnel.png')
 put('TUNNEL_INDEX',longs(idx));put('TUNNEL',tunnel)
 
-# Roto: short native source rows. The blitter repeats each row eight times.
-# 40 source bytes become a 320px tile row without 8x CPU writes.
-roto=bytearray()
-for f in range(64):
-    a=f*math.tau/64;pitch=38+12*math.sin(f*math.tau/64)
-    for row in range(20):
-        colours=[]
-        for col in range(320):
-            x=col-160;y=(row-10)*8
-            u=math.floor((x*math.cos(a)+y*math.sin(a))/pitch)
-            v=math.floor((-x*math.sin(a)+y*math.cos(a))/pitch)
-            colours.append(1 if (u+v)%2 else 2)
-        roto.extend(sum((colours[x+b]&1)<<(7-b) for b in range(8)) for x in range(0,320,8))
-put('ROTO',roto)
+# Roto: independent compressed 320x80 poses; Copper repeats rows twice.
+from roto_codec import generate as generate_roto
+roto_index,roto_payload=generate_roto()
+put('ROTO_INDEX',longs(roto_index));put('ROTO_COMPRESSED',roto_payload)
 rd=bytearray();ri=[]
 for f in range(64):
     ri.append(len(rd));a=f*math.tau/64;pitch=38+12*math.sin(f*math.tau/64)
@@ -276,16 +275,17 @@ space_bg.save(OUT/'space-asset.png')
 
 # True planar flat-shaded cube poses; three face colours replace Bayer stipple.
 def cube(size, phase):
-    a=phase*math.tau/32;b=a*.7
+    a=phase*math.tau/32;b=.65*math.sin(a)
+    scale=.22+.055*math.cos(a)  # Approach/recede, inside the fixed DMA footprint.
     verts=[]
     for x,y,z in [(-1,-1,-1),(1,-1,-1),(-1,1,-1),(1,1,-1),(-1,-1,1),(1,-1,1),(-1,1,1),(1,1,1)]:
         x,z=x*math.cos(a)+z*math.sin(a),-x*math.sin(a)+z*math.cos(a)
         y,z=y*math.cos(b)-z*math.sin(b),y*math.sin(b)+z*math.cos(b)
-        verts.append((size/2+x*size*.25,size/2+y*size*.25,z))
+        verts.append((size/2+x*size*scale,size/2+y*size*scale,z))
     im=Image.new('P',(size,size));d=ImageDraw.Draw(im)
     faces=[(0,1,3,2),(4,6,7,5),(0,4,5,1),(2,3,7,6),(0,2,6,4),(1,5,7,3)]
     for i,face in sorted(enumerate(faces),key=lambda item:sum(verts[k][2] for k in item[1])):
-        d.polygon([(verts[k][0],verts[k][1]) for k in face],fill=(i%3)+1)
+        d.polygon([(verts[k][0],verts[k][1]) for k in face],fill=(i//2)+1)
     padded=Image.new('P',(size+16,size));padded.paste(im,(0,0))
     return b''.join(bits(padded.point(lambda p:255 if p&(1<<plane) else 0,'1')) for plane in range(2))+bits(padded.point(lambda p:255 if p else 0,'1'))
 put('CUBES',b''.join(cube(48,i) for i in range(32)))

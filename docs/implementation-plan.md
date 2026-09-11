@@ -150,3 +150,44 @@ benchmark. The runner prompt and speed labels were visually confirmed.
 The earlier footer hypothesis about line 255 is unproven: label and numeric
 pixels use the same plane and rows. Investigate a contemporaneous display/state
 capture if it recurs; do not attribute it to Copper rollover without evidence.
+
+## Chrome and geometry refinement
+
+- Bold hires glyphs with a silver/white horizon, dark seam and blue-steel
+  reflection. A 64-phase OCS colour table follows the blitter stretch; Copper
+  changes COLOR01 every four display lines. No additional hires bitplane.
+- Remove the unused hires CPU painter and its duplicated column index/code.
+  The masked blitter bitmap renderer is now the only hires glyph path.
+- Cube opposite-face pairs keep cyan, purple and gold materials. Palette
+  values remain constant across scanlines; periodic rocking and scale changes
+  make rotation and approach/recession visible without growing BOB footprints.
+- Night Train background stars are clipped above logical row 88, the start of
+  the skyline. They no longer show through the lower city and foreground.
+- Graphs slide vertically using two clipped blitter rectangles. Each 128-tick
+  baked slot has a 64-tick slide and 64-tick hold. The first live graph gets
+  128 ticks; total graph-scene duration remains 512 ticks (10.24 seconds).
+- Tunnel: ten rings, cubic depth spacing and a two-pixel vanishing radius.
+  Compact two-byte vertices retain the 128-phase sequence and free CHIP RAM.
+  The walls remain wireframe; filled checker walls are a further experiment,
+  not implemented or claimed in this build.
+- Roto: 64 independent 320×80 poses, compressed with bounded LZSS, decoded
+  only when the pose changes into alternate 3,200-byte CHIP buffers. Copper
+  repeats each source row twice instead of eight times: four times the vertical
+  detail. All 64 pose round-trips are tested. Native decoder output was also
+  compared with the generated reference in an FS-UAE save state.
+- Copper footer waits remain ordered after positive roto bob. This addresses
+  a concrete ordering defect, without claiming it explained every old label issue.
+
+The first finer-roto run sampled 29.63 fps, and the deeper tunnel 24.89 fps.
+These are direct-selection emulator observations. Final decoder optimisation
+and its measurement are recorded separately; do not imply the entire show
+runs at 50 fps. Source frame count is distinct from displayed frame rate.
+
+Final native checks: the unrolled decoder sampled 34.18 fps over 474 VBLs,
+with decoded pose 0 matching all 3,200 reference bytes. See
+`validation/chrome-refinement.json` for the binary hash and counters. The graph
+slide was frozen at frame 180: the published plane exactly matched the outgoing
+plot cropped by 104 rows plus the incoming plot's first 104 rows. Its caption
+was visually stationary; evidence is in `validation/graph-slide.json`.
+Chrome lettering, stable cube materials and the clear lower Night Train skyline
+were visually checked. These remain emulator checks, not physical hardware tests.

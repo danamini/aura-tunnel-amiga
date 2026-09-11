@@ -1,7 +1,7 @@
 # Aura Tunnel Amiga
 
 An Amiga 500 / OCS companion to [Aura Tunnel for ZX Spectrum](https://github.com/danamini/aura-tunnel), preserving its ten-scene sequence and
-music while adding Amiga colour, sprites, blitter effects and finer lettering.
+music while adding Amiga colour, sprites, blitter effects and chrome lettering.
 
 **Development preview, 11 September 2026.** The visual pass is unfinished.
 [Download the bootable ADF](dist/aura-tunnel-amiga.adf) or build from source.

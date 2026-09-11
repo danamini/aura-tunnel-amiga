@@ -51,6 +51,10 @@ ROEXIT equ 160
 ROMODE equ 164
 GRAPHTICKS equ 166
 GRAPHSTART equ 168
+ROFRONT equ 172
+ROBACK equ 176
+ROPOSE equ 180
+ROVALID equ 182
 
 start:
         move.l a4,d7
@@ -114,6 +118,11 @@ start:
         move.l d0,COPINDEX(a5)
         add.l #208,d0
         move.l d0,ROMODINDEX(a5)
+        move.l BASE(a5),d0
+        add.l #roto_a-start,d0
+        move.l d0,ROFRONT(a5)
+        add.l #3200,d0
+        move.l d0,ROBACK(a5)
         bsr build_copper
         move.w #1,MUTE(a5)
         move.w #1,BODIES(a5)
@@ -370,7 +379,7 @@ tunnel:
         move.w #40,$60(a6)
         move.w #40,$66(a6)
         move.l a2,-(sp)
-        moveq #5,d7
+        moveq #9,d7
 .ring:
         move.w (a2)+,-(sp)
         move.w #$ffff,d5
@@ -381,37 +390,52 @@ tunnel:
         bne.s .bright
         move.w #PLANE,d4
 .bright:
-        move.w (a2),d0
-        move.w 2(a2),d1
-        move.w 4(a2),d2
-        move.w 6(a2),d3
+        moveq #0,d0
+        moveq #0,d1
+        moveq #0,d2
+        moveq #0,d3
+        move.b (a2),d0
+        add.w d0,d0
+        move.b 1(a2),d1
+        move.b 2(a2),d2
+        add.w d2,d2
+        move.b 3(a2),d3
         bsr blitter_line
         cmp.w #3,(sp)
         bne.s .one
         bsr wait_blit
-        move.w (a2),d0
-        move.w 2(a2),d1
+        moveq #0,d0
+        moveq #0,d1
+        move.b (a2),d0
+        add.w d0,d0
+        move.b 1(a2),d1
         bsr point
 .one:
-        addq.l #4,a2
+        addq.l #2,a2
         dbra d6,.edge
-        addq.l #4,a2
+        addq.l #2,a2
         addq.l #2,sp
         dbra d7,.ring
         move.l (sp)+,a2
         addq.l #2,a2
-        lea 38*5(a2),a3
+        lea 20*9(a2),a3
         moveq #3,d6
 .rail:
-        move.w (a2),d0
-        move.w 2(a2),d1
-        move.w (a3),d2
-        move.w 2(a3),d3
+        moveq #0,d0
+        moveq #0,d1
+        move.b (a2),d0
+        add.w d0,d0
+        move.b 1(a2),d1
+        moveq #0,d2
+        moveq #0,d3
+        move.b (a3),d2
+        add.w d2,d2
+        move.b 1(a3),d3
         move.w #PLANE,d4
         move.w #$cccc,d5
         bsr blitter_line
-        addq.l #8,a2
-        addq.l #8,a3
+        addq.l #4,a2
+        addq.l #4,a3
         dbra d6,.rail
         rts
 
@@ -510,17 +534,46 @@ point_stream:
         dbra d7,.point
         rts
 
+; Decompress only a changed pose, never into the buffer being scanned out.
+prepare_roto:
+        move.w FRAME(a5),d4
+        lsr.w #2,d4
+        and.w #63,d4
+        tst.w ROVALID(a5)
+        beq.s .decode
+        cmp.w ROPOSE(a5),d4
+        beq.s .done
+.decode:
+        move.w d4,-(sp)
+        lsl.w #2,d4
+        move.l a4,a3
+        add.l #ROTO_INDEX,a3
+        move.l a4,a0
+        add.l #ROTO_COMPRESSED,a0
+        move.l a0,a2
+        add.l (a3,d4.w),a0
+        add.l 4(a3,d4.w),a2
+        move.l ROBACK(a5),a1
+        move.w #3200,d0
+        bsr roto_decode
+        move.w (sp)+,d4
+        tst.w d0
+        bne.s .done
+        move.l ROFRONT(a5),d0
+        move.l ROBACK(a5),ROFRONT(a5)
+        move.l d0,ROBACK(a5)
+        move.w d4,ROPOSE(a5)
+        move.w #1,ROVALID(a5)
+.done:  rts
+        include "src/roto_decode.asm"
+
 roto:
+        bsr prepare_roto
         cmp.w #32,FRAME(a5)
         bhs roto_dots
 roto_legacy:
-        move.w FRAME(a5),d0
-        lsr.w #2,d0
-        and.w #63,d0
-        mulu #800,d0
-        move.l a4,a2
-        add.l #ROTO,a2
-        add.l d0,a2
+        bsr prepare_roto
+        move.l ROFRONT(a5),a2
         move.l BACK(a5),a3
         add.l #1280,a3
         move.w FRAME(a5),d0
@@ -532,22 +585,22 @@ roto_legacy:
         asr.w #1,d0
         muls #40,d0
         add.l d0,a3
-        moveq #19,d7
+        moveq #79,d7
 .row:
         move.l a2,a0
         move.l a3,a1
         moveq #20,d0
-        moveq #8,d1
+        moveq #2,d1
         moveq #-40,d2
         moveq #0,d3
         bsr copy
         move.l a2,a0
         lea PLANE(a3),a1
         moveq #20,d0
-        moveq #8,d1
+        moveq #2,d1
         bsr copy_inverted
         lea 40(a2),a2
-        lea 320(a3),a3
+        lea 80(a3),a3
         dbra d7,.row
 roto_dots:
         move.w FRAME(a5),d0
@@ -712,44 +765,6 @@ blit_wave_group:
         move.w d3,$58(a6)
         rts
 
-hires_columns_cpu:
-        bsr wait_blit
-        moveq #0,d0
-        move.w FRAME(a5),d0
-        add.l d0,d0
-        divu #HIWIDTH,d0
-        swap d0
-        and.l #$ffff,d0
-        add.w d0,d0
-        move.l a4,a2
-        add.l #HICOLS,a2
-        add.l d0,a2
-        move.l BASE(a5),a3
-        add.l #hi_column_code-start,a3
-        move.l a4,a0
-        add.l #HI_SINE,a0
-        move.w FRAME(a5),d7
-        lsl.w #3,d7
-        and.w #1022,d7
-        move.w #639,d6
-        moveq #0,d3
-        moveq #-128,d5
-.column:
-        move.w (a0,d7.w),d0
-        add.w #HI_BASE_ROW*80,d0
-        add.w d3,d0
-        move.l HIBACK(a5),a1
-        add.w d0,a1
-        move.w (a2)+,d2
-        jsr (a3,d2.w)
-        addq.w #2,d7
-        and.w #1022,d7
-        ror.b #1,d5
-        bpl.s .samebyte
-        addq.w #1,d3
-.samebyte:
-        dbra d6,.column
-        rts
 stretch_hires:
         move.w FRAME(a5),d0
         lsr.w #2,d0
@@ -946,6 +961,11 @@ stars:
         divu #320,d0
         swap d0
         move.w 2(a2),d1
+        cmp.w #9,SCENE(a5)
+        bne.s .space_occlusion
+        cmp.w #88,d1          ; All background stars stay above the skyline.
+        bhs.s .hidden
+.space_occlusion:
         cmp.w #7,SCENE(a5)
         bne.s .visible
         move.l a4,a0
@@ -1138,7 +1158,7 @@ ground:
         rts
 
 graphs:
-        cmp.w #320,FRAME(a5)
+        cmp.w #128,FRAME(a5)
         bhs .baked
         bsr wait_blit
         tst.w GRAPHTICKS(a5)
@@ -1166,26 +1186,57 @@ graphs:
         bsr copy
         move.l a4,a0
         add.l #GRAPH_LIVE_TITLE,a0
-        bra.s .label
+        bra .label
 .baked:
-        move.w FRAME(a5),d0
-        sub.w #320,d0
-        lsr.w #6,d0
-        cmp.w #2,d0
-        bls.s .which
-        moveq #0,d0
-.which:
-        mulu #5120,d0
-        move.l a4,a0
-        add.l #GRAPHS,a0
+        move.w FRAME(a5),d4
+        sub.w #128,d4
+        move.w d4,d5
+        and.w #127,d5
+        lsl.w #1,d5
+        cmp.w #128,d5
+        bls.s .offset
+        move.w #128,d5
+.offset:
+        lsr.w #7,d4
+        mulu #5120,d4
+        move.l a4,a2
+        add.l #GRAPHS,a2
+        add.l d4,a2
+        cmp.w #128,d5
+        beq.s .incoming
+        move.l GRAPHBUF(a5),a0
+        tst.w d4
+        beq.s .outgoing
+        move.l a2,a0
+        sub.l #5120,a0
+.outgoing:
+        move.w d5,d0
+        mulu #40,d0
         add.l d0,a0
         move.l BACK(a5),a1
         add.l #2880,a1
-        moveq #20,d0
         move.w #128,d1
+        sub.w d5,d1
+        moveq #20,d0
         moveq #0,d2
         moveq #0,d3
         bsr copy
+.incoming:
+        tst.w d5
+        beq.s .slide_done
+        move.l a2,a0
+        move.l BACK(a5),a1
+        move.w #128,d0
+        sub.w d5,d0
+        mulu #40,d0
+        add.l #2880,d0
+        add.l d0,a1
+        move.w d5,d1
+        moveq #20,d0
+        moveq #0,d2
+        moveq #0,d3
+        bsr copy
+.slide_done:
         move.l a4,a0
         add.l #GRAPH_BAKED_TITLE,a0
 .label:
@@ -1963,8 +2014,8 @@ publish_hires:
         move.w d0,6(a0)
         rts
 
-; Repeat compact rotated rows with DMA. The even plane remains a full-height
-; dot overlay; odd modulo advances once every eight lines.
+; Repeat compact rotated rows twice with Copper-controlled DMA. The even
+; plane remains a full-height dot overlay; the odd plane advances every other line.
 publish_roto:
         moveq #0,d5
         cmp.w #2,SCENE(a5)
@@ -1997,8 +2048,17 @@ publish_roto:
         lsl.w #2,d0
         add.w #44,d0
         cmp.w #50,d7
-        bhs.s .time
+        bhs.s .late_band
         add.w d6,d0
+        bra.s .time
+.late_band:
+        ; Keep footer waits after the bobbed band 49, still before line 252.
+        move.w d7,d1
+        add.w #191,d1
+        add.w d6,d1
+        cmp.w d1,d0
+        bhs.s .time
+        move.w d1,d0
 .time:
         lsl.w #8,d0
         or.w #7,d0
@@ -2007,24 +2067,32 @@ publish_roto:
         beq.s .next
         move.l d0,a1
         tst.w d5
-        beq.s .mod
+        beq.s .mods
         move.w #$57b,6(a0)
         move.w 18(a0),14(a0)
-.mod:
-        moveq #-40,d1
-        btst #0,d7
-        beq.s .write
+.mods:
         move.w (a0),d0
-        add.w #$300,d0
-        move.w d0,(a1)
-        addq.l #4,a1
-        moveq #0,d1
-.write:
+        moveq #0,d2
+.modrow:
         move.w #$1fe,(a1)
         tst.w d5
-        beq.s .next
+        beq.s .modnext
         move.w #$108,(a1)
+        moveq #-40,d1
+        btst #0,d2
+        beq.s .modwrite
+        moveq #0,d1
+.modwrite:
         move.w d1,2(a1)
+.modnext:
+        addq.l #4,a1
+        addq.w #1,d2
+        cmp.w #4,d2
+        beq.s .next
+        add.w #$100,d0
+        move.w d0,(a1)
+        addq.l #4,a1
+        bra.s .modrow
 .next:
         addq.w #1,d7
         cmp.w #52,d7
@@ -2041,13 +2109,7 @@ publish_roto:
         move.w #$1fe,8(a1)
         rts
 .pointers:
-        move.w FRAME(a5),d0
-        lsr.w #2,d0
-        and.w #63,d0
-        mulu #800,d0
-        move.l a4,d1
-        add.l #ROTO,d1
-        add.l d1,d0
+        move.l ROFRONT(a5),d0
         move.w #$e0,(a0)
         swap d0
         move.w d0,2(a0)
@@ -2187,17 +2249,19 @@ build_copper:
         cmp.w #48,d7
         bhs.s .ro_next
         move.l a0,(a3)
-        btst #0,d7
-        beq.s .ro_even
+        move.l #$01fe0000,(a0)+
         move.w d7,d0
         lsl.w #2,d0
-        add.w #47,d0
+        add.w #44,d0
         lsl.w #8,d0
         or.w #7,d0
+        moveq #2,d6
+.ro_subrow:
+        add.w #$100,d0
         move.w d0,(a0)+
         move.w #$fffe,(a0)+
-.ro_even:
         move.l #$01fe0000,(a0)+
+        dbra d6,.ro_subrow
 .ro_next:
         addq.l #4,a3
         addq.w #1,d7
@@ -2267,7 +2331,7 @@ palette:
         move.w #$647,d1
         move.w #$324,d2
         move.w #$112,d3
-        bra.s .set
+        bra .set
 .train:
         cmp.w #7,SCENE(a5)
         bne.s .train_colour
@@ -2275,7 +2339,7 @@ palette:
         move.w #$325,d1
         move.w #$85a,d2
         move.w #$fc9,d3
-        bra.s .set
+        bra .set
 .train_colour:
         cmp.w #9,SCENE(a5)
         bne.s .colour
@@ -2290,6 +2354,33 @@ palette:
         move.w #$bdf,d3
         bra .set
 .colour:
+        cmp.w #5,SCENE(a5)
+        bne.s .chrome
+        ; A face keeps its material colour across every raster band.
+        move.w #$5df,d1
+        move.w #$b5f,d2
+        move.w #$fd7,d3
+        bra .set
+.chrome:
+        cmp.w #4,SCENE(a5)
+        bne.s .ordinary
+        cmp.w #32,d7
+        blo.s .ordinary
+        cmp.w #46,d7
+        bhs.s .ordinary
+        move.w FRAME(a5),d4
+        lsr.w #2,d4
+        and.w #63,d4
+        mulu #28,d4
+        move.w d7,d5
+        sub.w #32,d5
+        add.w d5,d5
+        add.w d5,d4
+        move.l a4,a1
+        add.l #HI_CHROME,a1
+        move.w (a1,d4.w),d1
+        bra .set
+.ordinary:
         cmp.w #8,d7
         blo.s .set
         cmp.w #48,d7
@@ -2324,16 +2415,13 @@ state:
 big_column_code:
         incbin "build/column-code.bin"
         even
-hi_column_code:
-        incbin "build/hires-code.bin"
-        even
 assets:
         incbin "build/assets.bin"
         even
 screen_a: dcb.b SCREEN,0
 screen_b: dcb.b SCREEN,0
 frozen: dcb.b SCREEN,0
-copper: dcb.b 2048,0
+copper: dcb.b 3072,0
 sprite_data: dcb.b 416,0
 dummy_sprite: dc.l 0,0
 graph_data: dcb.b 5120,0
@@ -2341,6 +2429,8 @@ horizon_data: dcb.b 320,0
 mask_data: dcb.b PLANE,0
 right_fighter_data: dcb.b FIGHTER_POSE*2,0
 perf_data: dcb.b 80,0
+roto_a: dcb.b 3200,0
+roto_b: dcb.b 3200,0
 hires_a: dcb.b 4480,0
 hires_b: dcb.b 4480,0
 hires_work: dcb.b 4480,0

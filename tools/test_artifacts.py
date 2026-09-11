@@ -42,13 +42,10 @@ for offset in range(0,len(sprites),232):
     pos,ctl=struct.unpack_from('>HH',sprites,offset)
     assert (ctl>>8)-(pos>>8)==56
     assert sprites[offset+228:offset+232]==bytes(4)
-code=(build/'hires-code.bin').read_bytes();cols=words(asset('HICOLS'))
-assert any(a!=b for a,b in zip(cols[::2],cols[1::2])),'Hires just doubled pixels'
-for off in set(cols):
-    while code[off:off+2]!=b'\x4e\x75':
-        op,y=struct.unpack_from('>HH',code,off)
-        assert op==0x8b29 and y%80==0 and 0<=y<GLYPH_HEIGHT*80
-        off+=4
+assert any(((b>>i)&1)!=((b>>(i+1))&1) for b in asset('HI_BITMAP') for i in (0,2,4,6)), 'Hires just doubled pixels'
+chrome=words(asset('HI_CHROME'))
+assert len(chrome)==64*14 and all(c<4096 for c in chrome)
+assert len(set(chrome))>20, 'Chrome reflection needs a varied OCS ramp'
 assert max(struct.unpack('>'+'h'*(len(asset('HI_SINE'))//2),asset('HI_SINE')))+((56-GLYPH_HEIGHT)//2)*80+(GLYPH_HEIGHT-1)*80+79<4480
 # Every elastic program covers all 56 destination rows exactly once, with
 # either consecutive source rows or a repeated row. No crop reads past scratch.
@@ -67,13 +64,20 @@ for off in words(asset('HI_STRETCH_INDEX')):
     assert end==56
     heights.append(occupied)
 assert min(heights)<20 and max(heights)==56,'Elastic range too subtle'
-assert any(b not in (0,255) for b in asset('ROTO')),'Roto still has byte-wide pixels'
+from roto_codec import decode, checker_pose
+ri=longs(asset('ROTO_INDEX'));payload=asset('ROTO_COMPRESSED')
+assert len(ri)==65 and ri[-1]==len(payload)
+for pose in range(64):
+    raw=decode(payload[ri[pose]:ri[pose+1]],3200)
+    assert raw==checker_pose(pose), pose
+    assert any(b not in (0,255) for b in raw)
 vertices=asset('TUNNEL')
-assert len(vertices)==128*6*38
-for off in range(0,len(vertices),38):
-    frame=words(vertices[off:off+38]);assert frame[0] in (1,2,3)
-    assert frame[1:3]==frame[-2:]
-    for x,y in zip(frame[1::2],frame[2::2]):assert 0<=x<320 and 24<=y<200
+assert len(vertices)==128*10*20
+for off in range(0,len(vertices),20):
+    assert words(vertices[off:off+2])[0] in (1,2,3)
+    points=list(zip(vertices[off+2:off+20:2],vertices[off+3:off+20:2]))
+    assert points[0]==points[-1]
+    assert all(0<=x*2<320 and 24<=y<200 for x,y in points)
 # B-channel word shifts with a repeated A mask must reproduce each glyph
 # column, including negative shifts, both edges and the wrapped text seam.
 bitmap=asset('HI_BITMAP')
