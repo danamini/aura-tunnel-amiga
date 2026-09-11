@@ -102,12 +102,12 @@ visually checked in the prior build but has no final counter sample.
 
 The final screenshots show the main footer, but the lower `AMIGA 500 / PAL` and
 `FPS` labels can disappear while the numeric FPS remains. The label pixels exist
-in framebuffer RAM. Investigate Copper/fetch/palette state past physical line
-255; do not mark this fixed from a memory-only check.
+in framebuffer RAM. Compare the framebuffer with the actual display in a contemporaneous capture;
+there is no established Copper, fetch or palette cause.
 
 Keep or optimise the elastic pass only after comparing a full cycle against the
 previous 25 fps hires renderer. Group consecutive source rows as well as repeated
-rows, or investigate Copper resampling. The current blitter pass groups repeats.
+rows, or investigate Copper resampling. The resumed blitter pass now groups both consecutive and repeated rows.
 Runners also need a measured comparison of body and dot modes with ridge scrolling.
 
 Capture a full uninterrupted playlist after the final build, including transitions.
@@ -125,3 +125,28 @@ Fighter travel follows the original script, with interpolated X coordinates.
 Their new 47-pose sequence does not yet map every original kick/sweep cue one for
 one. The existing artwork lacks exact equivalents for all six old move types.
 Retain choreography as the reference when selecting additional authored poses.
+
+## Resumed refinement, 11 September 2026
+
+- Neon tunnel: replace isolated dots with eight-sided perspective rings drawn
+  by OCS blitter line mode, bright near vertices and dashed depth rails.
+- Copper roto: pack 320 independent horizontal checker pixels into the same
+  40-byte source rows. Copper still repeats rows and bobs the display; there is
+  no arbitrary hardware rotation instruction. Vertical resolution remains 20
+  source rows and the animation retains 64 precalculated orientations.
+- Hires scroll: 40-pixel lettering, an obvious 24–100% vertical elastic cycle,
+  and exact sine-height runs drawn with masked, shifted blitter copies.
+  Stretch programs group consecutive and repeated source rows. Independent
+  shift tests cover alignment, screen edges and text wrapping.
+- Runners: 768 ticks (15.36 seconds), slower left companion, labelled SLOW/FAST,
+  and warm-white PRESS R: BODIES / DOTS text across both dynamic planes.
+- Graph: remove deliberate throttling, measure the complete 1,363-candidate
+  calculation, compare with the recorded Spectrum ROM BASIC baseline, and
+  reduce the scene from 25.24 to 10.24 seconds. See graph-comparison.md.
+
+Current direct-selection checks show tunnel 49.75 fps and the new elastic
+scroller 24.97 fps. These are sampled emulator results, not a full release
+benchmark. The runner prompt and speed labels were visually confirmed.
+The earlier footer hypothesis about line 255 is unproven: label and numeric
+pixels use the same plane and rows. Investigate a contemporaneous display/state
+capture if it recurs; do not attribute it to Copper rollover without evidence.

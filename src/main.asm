@@ -49,6 +49,8 @@ ROMODINDEX equ 152
 ROENTRY equ 156
 ROEXIT equ 160
 ROMODE equ 164
+GRAPHTICKS equ 166
+GRAPHSTART equ 168
 
 start:
         move.l a4,d7
@@ -302,11 +304,11 @@ draw_fps:
         and.w #$ffff,d0
         move.l BACK(a5),a1
         lea 8677(a1),a1
-        bsr .digit
+        bsr decimal_digit
         move.l d6,d0
         swap d0
         addq.l #1,a1
-.digit:
+decimal_digit:
         and.l #$ffff,d0
         add.w #16,d0
         lsl.w #3,d0
@@ -363,6 +365,124 @@ tunnel:
         move.l a4,a2
         add.l #TUNNEL,a2
         add.l d0,a2
+        bsr wait_blit
+        move.l #-1,$44(a6)
+        move.w #40,$60(a6)
+        move.w #40,$66(a6)
+        move.l a2,-(sp)
+        moveq #5,d7
+.ring:
+        move.w (a2)+,-(sp)
+        move.w #$ffff,d5
+        moveq #7,d6
+.edge:
+        moveq #0,d4
+        cmp.w #2,(sp)
+        bne.s .bright
+        move.w #PLANE,d4
+.bright:
+        move.w (a2),d0
+        move.w 2(a2),d1
+        move.w 4(a2),d2
+        move.w 6(a2),d3
+        bsr blitter_line
+        cmp.w #3,(sp)
+        bne.s .one
+        bsr wait_blit
+        move.w (a2),d0
+        move.w 2(a2),d1
+        bsr point
+.one:
+        addq.l #4,a2
+        dbra d6,.edge
+        addq.l #4,a2
+        addq.l #2,sp
+        dbra d7,.ring
+        move.l (sp)+,a2
+        addq.l #2,a2
+        lea 38*5(a2),a3
+        moveq #3,d6
+.rail:
+        move.w (a2),d0
+        move.w 2(a2),d1
+        move.w (a3),d2
+        move.w 2(a3),d3
+        move.w #PLANE,d4
+        move.w #$cccc,d5
+        bsr blitter_line
+        addq.l #8,a2
+        addq.l #8,a3
+        dbra d6,.rail
+        rts
+
+; OCS line DMA. Endpoints d0/d1 -> d2/d3; d4 plane byte offset,
+; d5 texture. Preserve stream counters; endpoints are scratch registers.
+blitter_line:
+        movem.l d6-d7,-(sp)
+        bsr wait_blit
+        move.l BACK(a5),a0
+        add.w d4,a0
+        move.w d1,d4
+        mulu #40,d4
+        add.l d4,a0
+        move.w d0,d4
+        lsr.w #4,d4
+        add.w d4,d4
+        add.w d4,a0
+        sub.w d0,d2
+        sub.w d1,d3
+        moveq #0,d6
+        tst.w d2
+        bpl.s .right
+        neg.w d2
+        addq.w #1,d6
+.right:
+        tst.w d3
+        bpl.s .down
+        neg.w d3
+        addq.w #2,d6
+.down:
+        cmp.w d3,d2
+        blo.s .steep
+        addq.w #4,d6
+        bra.s .octant
+.steep:
+        exg d2,d3
+.octant:
+        lea line_octants(pc),a1
+        moveq #0,d7
+        move.b (a1,d6.w),d7
+        move.w d3,d4
+        lsl.w #2,d4
+        move.w d4,$62(a6)
+        sub.w d2,d4
+        sub.w d2,d4
+        move.w d4,$52(a6)
+        clr.w $50(a6)
+        tst.w d4
+        bpl.s .positive
+        or.w #$40,d7
+.positive:
+        sub.w d2,d3
+        lsl.w #2,d3
+        move.w d3,$64(a6)
+        and.w #15,d0
+        ror.w #4,d0
+        or.w #$0bca,d0
+        move.w d0,$40(a6)
+        move.w d7,$42(a6)
+        move.w #$8000,$74(a6)
+        move.w d5,$72(a6)
+        move.l a0,$48(a6)
+        move.l a0,$54(a6)
+        addq.w #1,d2
+        lsl.w #6,d2
+        or.w #2,d2
+        move.w d2,$58(a6)
+        movem.l (sp)+,d6-d7
+        rts
+line_octants: dc.b 1,9,5,13,17,21,25,29
+        even
 point_stream:
         bsr wait_blit
         move.l BACK(a5),a1
@@ -477,6 +597,122 @@ bigscroll:
         move.w #144,d4
         bra render_columns
 hires_columns:
+        moveq #0,d5
+        move.w FRAME(a5),d5
+        add.l d5,d5
+        divu #HIWIDTH,d5
+        swap d5
+        and.l #$ffff,d5
+        move.w FRAME(a5),d7
+        lsl.w #4,d7
+        and.w #2047,d7
+        moveq #0,d6
+        move.l a4,a2
+        add.l #HI_BITMAP,a2
+        move.l a4,a3
+        add.l #HI_WAVE_RUNS,a3
+.group:
+        move.w (a3,d7.w),d0
+        move.w #640,d1
+        sub.w d6,d1
+        cmp.w d1,d0
+        bls.s .length
+        move.w d1,d0
+.length:
+        move.w d0,d4
+        move.w 2(a3,d7.w),d1
+        movem.l d4-d7/a2-a3,-(sp)
+        bsr blit_wave_group
+        movem.l (sp)+,d4-d7/a2-a3
+        add.w d4,d6
+        lsl.w #2,d4
+        add.w d4,d7
+        and.w #2047,d7
+        cmp.w #640,d6
+        blo.s .group
+        rts
+
+; Exact equal-height runs from the sine table. A repeats a short word mask;
+; B is shifted text; C preserves neighbouring columns at different heights.
+blit_wave_group:
+        bsr wait_blit
+        move.w d0,d7
+        move.l HIBACK(a5),a1
+        add.w d1,a1
+        move.w d6,d2
+        and.w #15,d2
+        move.w d6,d3
+        lsr.w #4,d3
+        add.w d3,d3
+        add.w d3,a1
+        add.w d6,d5
+        move.w d5,d4
+        and.w #15,d5
+        lsr.w #4,d4
+        add.w d4,d4
+        add.w d4,a2
+        move.w d2,d6
+        sub.w d5,d6
+        moveq #0,d4
+        tst.w d6
+        bpl.s .shift
+        add.w #16,d6
+        moveq #1,d4
+        subq.l #2,a1
+.shift:
+        move.w d2,d5
+        add.w d7,d5
+        add.w #15,d5
+        lsr.w #4,d5
+        move.w d5,d3
+        add.w d4,d3
+        move.l MASKBUF(a5),a0
+        tst.w d4
+        beq.s .first
+        clr.w (a0)+
+.first:
+        moveq #-1,d0
+        lsr.w d2,d0
+        move.w d0,(a0)+
+        subq.w #1,d5
+        beq.s .last
+        subq.w #1,d5
+.full:
+        move.w #$ffff,(a0)+
+        dbra d5,.full
+.last:
+        add.w d7,d2
+        and.w #15,d2
+        beq.s .setup
+        moveq #16,d0
+        sub.w d2,d0
+        moveq #-1,d1
+        lsl.w d0,d1
+        and.w d1,-2(a0)
+.setup:
+        move.w #$0fca,$40(a6)
+        ror.w #4,d6
+        move.w d6,$42(a6)
+        move.l #-1,$44(a6)
+        move.l MASKBUF(a5),$50(a6)
+        move.l a2,$4c(a6)
+        move.l a1,$48(a6)
+        move.l a1,$54(a6)
+        move.w d3,d0
+        add.w d0,d0
+        neg.w d0
+        move.w d0,$64(a6)
+        move.w d0,d1
+        add.w #HI_STRIDE,d1
+        move.w d1,$62(a6)
+        add.w #80,d0
+        move.w d0,$60(a6)
+        move.w d0,$66(a6)
+        or.w #HI_GLYPH_HEIGHT*64,d3
+        move.w d3,$58(a6)
+        rts
+
+hires_columns_cpu:
         bsr wait_blit
         moveq #0,d0
         move.w FRAME(a5),d0
@@ -500,7 +736,7 @@ hires_columns:
         moveq #-128,d5
 .column:
         move.w (a0,d7.w),d0
-        add.w #1280,d0
+        add.w #HI_BASE_ROW*80,d0
         add.w d3,d0
         move.l HIBACK(a5),a1
         add.w d0,a1
@@ -518,49 +754,36 @@ stretch_hires:
         move.w FRAME(a5),d0
         lsr.w #2,d0
         and.w #63,d0
-        mulu #56,d0
+        add.w d0,d0
+        move.l a4,a0
+        add.l #HI_STRETCH_INDEX,a0
+        moveq #0,d1
+        move.w (a0,d0.w),d1
         move.l a4,a2
         add.l #HI_STRETCH,a2
-        add.l d0,a2
-        moveq #0,d7
+        add.l d1,a2
 .run:
-        moveq #0,d5
-        move.b (a2)+,d5
-        moveq #1,d6
-.extend:
-        move.w d7,d0
-        add.w d6,d0
-        cmp.w #56,d0
-        bhs.s .blit
-        cmp.b (a2),d5
-        bne.s .blit
-        addq.l #1,a2
-        addq.w #1,d6
-        bra.s .extend
-.blit:
+        move.w (a2)+,d0
+        cmp.w #$ffff,d0
+        beq.s .done
         move.l HIWORK(a5),a0
-        cmp.w #255,d5
+        cmp.w #$fffe,d0
         bne.s .source
         move.l a4,a0
         add.l #ZERO_ROW,a0
         bra.s .dest
 .source:
-        mulu #80,d5
-        add.l d5,a0
+        add.w d0,a0
 .dest:
         move.l HIBACK(a5),a1
-        move.w d7,d0
-        mulu #80,d0
-        add.l d0,a1
+        add.w (a2)+,a1
+        move.w (a2)+,d1
+        move.w (a2)+,d2
         moveq #40,d0
-        move.w d6,d1
-        move.w #-80,d2
         moveq #0,d3
         bsr copy
-        add.w d6,d7
-        cmp.w #56,d7
-        blo.s .run
-        rts
+        bra.s .run
+.done:  rts
 snake:
         bsr stars
         moveq #0,d0
@@ -807,7 +1030,7 @@ runner:
         swap d0
         bsr cached_figure
         move.w FRAME(a5),d0
-        lsr.w #2,d0
+        lsr.w #3,d0
         and.w #7,d0
         add.w #12,d0
         bsr cached_figure
@@ -817,7 +1040,26 @@ runner:
         and.w #7,d0
         add.w #20,d0
         bsr cached_figure
-        bra ground
+        bsr ground
+        move.l a4,a0
+        add.l #RUN_SPEEDS,a0
+        move.l BACK(a5),a1
+        add.l #7520,a1
+        moveq #20,d0
+        moveq #8,d1
+        moveq #0,d2
+        moveq #0,d3
+        bsr copy
+        ; Both dynamic planes make the controls and speed labels warm white.
+        bsr wait_blit
+        move.l BACK(a5),a0
+        lea 7520(a0),a0
+        move.l a0,a1
+        add.l #PLANE,a1
+        moveq #20,d0
+        moveq #24,d1
+        bsr copy
+        rts
 cached_figure:
         tst.w BODIES(a5)
         bne body_figure
@@ -896,11 +1138,24 @@ ground:
         rts
 
 graphs:
-        cmp.w #750,FRAME(a5)
+        cmp.w #320,FRAME(a5)
         bhs .baked
         bsr wait_blit
+        tst.w GRAPHTICKS(a5)
+        bne.s .calculated
+        ; Measure the entire job, including buffer/horizon initialisation.
+        ; VBL is independent of the render loop; round elapsed time upward.
+        move.l TICK(a5),GRAPHSTART(a5)
+        bsr scene_init
+.evaluate:
         bsr graph_live
-        bsr graph_live
+        cmp.w #140,GY(a5)
+        bls.s .evaluate
+        move.l TICK(a5),d0
+        sub.l GRAPHSTART(a5),d0
+        addq.w #1,d0
+        move.w d0,GRAPHTICKS(a5)
+.calculated:
         move.l GRAPHBUF(a5),a0
         move.l BACK(a5),a1
         add.l #2880,a1
@@ -914,8 +1169,8 @@ graphs:
         bra.s .label
 .baked:
         move.w FRAME(a5),d0
-        sub.w #750,d0
-        lsr.w #7,d0
+        sub.w #320,d0
+        lsr.w #6,d0
         cmp.w #2,d0
         bls.s .which
         moveq #0,d0
@@ -942,12 +1197,42 @@ graphs:
         moveq #0,d3
         bsr copy
         move.l a4,a0
-        add.l #GRAPH_LISTING,a0
+        add.l #GRAPH_COMPARE,a0
         move.l BACK(a5),a1
         add.l #1440,a1
         moveq #20,d0
         moveq #36,d1
-        bra copy
+        bsr copy
+        bsr wait_blit
+        moveq #0,d0
+        move.w GRAPHTICKS(a5),d0
+        mulu #20,d0
+        move.l BACK(a5),a1
+        lea 1937(a1),a1
+        bsr graph_number
+        move.l #7957,d0       ; floor(159.150836 seconds * 50 Hz)
+        move.w GRAPHTICKS(a5),d1
+        beq.s .done
+        divu d1,d0
+        and.l #$ffff,d0
+        move.l BACK(a5),a1
+        lea 1949(a1),a1
+        bsr graph_number
+.done:  rts
+
+; Four decimal digits, written right to left at the supplied screen byte.
+graph_number:
+        moveq #3,d5
+.number:
+        divu #10,d0
+        move.l d0,d4
+        swap d0
+        bsr decimal_digit
+        subq.l #1,a1
+        moveq #0,d0
+        move.w d4,d0
+        dbra d5,.number
+        rts
 
 ; Actual live fixed-point surface evaluation: exp(-r) ~= (1-r/256)^256.
 ; Eight Q14 squarings; no height lookup and no baked graph pixels here.
@@ -980,17 +1265,20 @@ graph_live:
         add.w GX(a5),d0
         add.w #40,d0
         move.w GY(a5),d1
-        lsr.w #1,d1
+        mulu #181,d1
+        lsr.l #8,d1
         add.w d2,d1
+        lsr.w #1,d1          ; Same display-only half-height as Spectrum preview.
         move.w #126,d2
         sub.w d1,d2
         bmi.s .next
         cmp.w #127,d2
         bhi.s .next
         move.l HORIZON(a5),a0
-        cmp.b (a0,d0.w),d2
-        bhs.s .next
-        move.b d2,(a0,d0.w)
+        move.b (a0,d0.w),d1
+        move.b d2,(a0,d0.w)  ; BASIC updates M on every candidate, even hidden ones.
+        cmp.b d1,d2
+        bhi.s .next
         mulu #40,d2
         move.w d0,d1
         not.w d1
@@ -1253,6 +1541,7 @@ next_scene:
         clr.w FRAME(a5)
         clr.w TRANS(a5)
 scene_init:
+        clr.w GRAPHTICKS(a5)
         clr.w GX(a5)
         clr.w GY(a5)
         move.l GRAPHBUF(a5),a0

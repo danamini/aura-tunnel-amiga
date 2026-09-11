@@ -3,7 +3,7 @@
 An Amiga 500 / OCS companion to [Aura Tunnel for ZX Spectrum](https://github.com/danamini/aura-tunnel), preserving its ten-scene sequence and
 music while adding Amiga colour, sprites, blitter effects and finer lettering.
 
-**Parked development preview, 11 September 2026.** The visual pass is unfinished.
+**Development preview, 11 September 2026.** The visual pass is unfinished.
 [Download the bootable ADF](dist/aura-tunnel-amiga.adf) or build from source.
 Known display and performance issues are recorded in the [implementation plan](docs/implementation-plan.md#verification-and-remaining-refinement).
 
@@ -22,6 +22,12 @@ normal-speed cycle-exact 68000, 512 KiB CHIP, 512 KiB slow, no fast RAM.
 - 1 through 9, then 0: select the ten scenes directly.
 - Space: pause/resume scene time for inspection. Audio timing continues.
 - F5/F6: save emulator states 1/2. F7: save a screenshot. F12: emulator menu.
+
+The runner scene lasts 15.36 seconds, with slow and fast companions and a
+bright on-screen R prompt. The graph scene now runs the complete calculation
+without artificial pacing and shows a measured implementation comparison:
+Spectrum ROM BASIC versus native 68000 fixed-point arithmetic. It is not a
+BASIC-to-BASIC or CPU-only benchmark. See [measurement details](docs/graph-comparison.md).
 
 Read `docs/implementation-plan.md` for adopted research, validation and remaining
 refinements. `tools/read_snapshot.py --save` reads counters from the running

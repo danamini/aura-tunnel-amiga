@@ -46,16 +46,18 @@ def text_image(lines, height=8):
             if 32<=ord(c)<128: im.paste(glyphs[ord(c)-32],(x+n*8,y))
     return im
 
-names=['BRIEFING','DOT TUNNEL','ROTO GRID','STAR SNAKE','SINE SCROLL',
+names=['BRIEFING','NEON TUNNEL','COPPER ROTO','STAR SNAKE','SINE SCROLL',
        'SOLID CUBES','DOT RUNNER','DEEP SPACE','3D GRAPHS','NIGHT TRAIN']
-durations=[256,512,512,256,1536,512,256,256,1262,512]
+durations=[256,512,512,256,1536,512,768,256,512,512]
 put('DURATIONS',words(durations))
 put('HEADERS',b''.join(bits(text_image([(8,0,f'{i+1:02} / {name}'),(232,0,'A500 OCS')])) for i,name in enumerate(names)))
 put('FPS_LABEL',bits(text_image([(8,0,'AMIGA 500 / PAL'),(264,0,'FPS')])) )
 put('FOOTER',bits(text_image([(8,0,'AURA TUNNEL / FOUR VOICES / SAME SHOW')])) )
-put('RUN_HELP',bits(text_image([(8,0,'R: BODIES / DOTS   SAME CAPTURED MOTION')])) )
+put('RUN_HELP',bits(text_image([(8,0,'PRESS R: BODIES / DOTS')])) )
 brief=['AURA TUNNEL','AMIGA 500 / OCS','TEN SCENES','EVERYTHING BAKED.','SHARING THE BEAM','READY']
 put('BRIEF',bits(text_image([(32,i*24,s) for i,s in enumerate(brief)],144)))
+put('RUN_SPEEDS',bits(text_image([(32,0,'SLOW'),(240,0,'FAST')])) )
+put('GRAPH_COMPARE',bits(text_image([(8,0,'ZX ROM BASIC: 159.15S / 1363 POINTS'),(8,12,'A500 NATIVE:      MS   ~     X FASTER'),(8,24,'FIXED POINT VS BASIC / NOT CPU RATIO')],36)))
 put('GRAPH_LIVE_TITLE',bits(text_image([(8,0,'LIVE 68000 / FIXED-POINT EXP')])) )
 put('GRAPH_BAKED_TITLE',bits(text_image([(8,0,'PRECALCULATED / BLITTER PLOT')])) )
 put('GRAPH_LISTING',bits(text_image([(8,0,'Z=78*EXP(-(C*C+D*D)/1400)'),
@@ -67,7 +69,7 @@ put('SINE',words([round(math.sin(i*math.tau/256)*16) for i in range(256)]))
 # Exactly the source demo's original outlined lettering, including its A/0/5.
 spec=importlib.util.spec_from_file_location('spectrum_font',REF/'tools/gen_font.py')
 mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
-bigtext='AURA TUNNEL A500 50FPS ONE BEAM '
+bigtext='AURA TUNNEL A500 ONE BEAM '
 column_stream=[]
 for c in bigtext:
     raw=mod.glyph(c)
@@ -75,18 +77,41 @@ for c in bigtext:
         column_stream.append(sum(((raw[y*4+x//8]>>(7-x%8))&1)<<y for y in range(24)))
 big_columns=column_stream
 symbols.append(f'BIGWIDTH equ {len(column_stream)}')
-from hires_font import generate as generate_hires
-hi_columns,hi_width=generate_hires(mod,bigtext,OUT)
+from hires_font import generate as generate_hires,GLYPH_HEIGHT
+hi_columns,hi_width,hi_bitmap,hi_stride=generate_hires(mod,bigtext,OUT)
+put('HI_BITMAP',hi_bitmap)
+symbols.extend([f'HI_STRIDE equ {hi_stride}',f'HI_GLYPH_HEIGHT equ {GLYPH_HEIGHT}'])
 put('HICOLS',words(hi_columns))
-put('HI_SINE',words([round(16*math.sin(i*math.tau/512))*80 for i in range(512)]))
+hi_base=(56-GLYPH_HEIGHT)//2
+put('HI_SINE',words([round(hi_base*math.sin(i*math.tau/512))*80 for i in range(512)]))
+symbols.append(f'HI_BASE_ROW equ {hi_base}')
+wave=[round(hi_base*math.sin(i*math.tau/512)) for i in range(512)]
+wave_runs=[]
+for phase in range(512):
+    n=1
+    while wave[(phase+n)%512]==wave[phase]:n+=1
+    wave_runs.extend((n,(wave[phase]+hi_base)*80))
+put('HI_WAVE_RUNS',words(wave_runs))
 symbols.append(f'HIWIDTH equ {hi_width}')
-stretch=[]
+stretch=bytearray();stretch_index=[];stretch_cache={}
 for phase in range(64):
-    scale=.85+.15*math.cos(phase*math.tau/64)
+    scale=.62+.38*math.cos(phase*math.tau/64)
+    mapping=[]
     for y in range(56):
         source=round(27.5+(y-27.5)/scale)
-        stretch.append(source if 0<=source<56 else 255)
-put('HI_STRETCH',bytes(stretch));put('ZERO_ROW',bytes(80))
+        mapping.append(source if 0<=source<56 else 255)
+    key=tuple(mapping)
+    if key not in stretch_cache:
+        stretch_cache[key]=len(stretch);y=0
+        while y<56:
+            source=mapping[y];step=0;count=1
+            if y+1<56 and source!=255 and mapping[y+1]==source+1:step=1
+            while y+count<56 and mapping[y+count]==source+step*count:count+=1
+            stretch+=words([0xfffe if source==255 else source*80,y*80,count,step*80-80])
+            y+=count
+        stretch+=words([0xffff])
+    stretch_index.append(stretch_cache[key])
+put('HI_STRETCH_INDEX',words(stretch_index));put('HI_STRETCH',stretch);put('ZERO_ROW',bytes(80))
 snake='        AURA TUNNEL        TUBE... BOX... STAR... TRUE HI-RES... GIANT LETTERS...   NO DOUBLE BUFFER - WE RACE THE BEAM...   THE STACK POINTER IS THE RENDERER...   SNAKE SNAKE SNAKE...   SPECTRUM AURA GOES 8-BIT...      '
 put('SNAKETEXT',snake.encode()+b'\0')
 symbols.append(f'SNAKECHARS equ {len(snake)}')
@@ -108,22 +133,28 @@ put('BIGCOLS',words([offsets[c] for c in big_columns*2]))
 put('SNAKECOLS',words([offsets[c] for c in snake_columns*2]))
 symbols.append(f'SNAKEWIDTH equ {len(snake_columns)}')
 
-# Tunnel: grouped native byte offset/mask records, one 128-frame trajectory.
+# Native line-mode tunnel: six twisted octagonal rings plus depth rails.
+# Store vertices, not full frames or per-pixel masks; the blitter draws them.
 tunnel=bytearray();idx=[]
 for f in range(128):
-    idx.append(len(tunnel));points={}
-    for ring in range(8):
-        t=((ring*16+f)%128)/127
-        radius=6+145*t*t
-        for spoke in range(12):
-            a=spoke*math.tau/12+f*math.tau/512
-            x=round(160+radius*math.cos(a)+12*math.sin(f*.04+t*3))
-            y=round(112+radius*.55*math.sin(a)+8*math.cos(f*.03+t*4))
-            if 0<=x<320 and 24<=y<200:
-                off=y*40+x//8; mask=128>>(x%8)
-                points[off]=points.get(off,0)|mask
-    tunnel+=words([len(points)])
-    for off,mask in sorted(points.items()):tunnel+=words([off])+bytes([mask,0])
+    idx.append(len(tunnel));rings=[]
+    depths=sorted(((ring*128/6+f)%128)/128 for ring in range(6))
+    for depth in depths:
+        radius=9+143*depth*depth
+        cx=160+14*math.sin(f*math.tau/128+depth*2)
+        cy=112+6*math.cos(f*math.tau/128+depth*3)
+        angle=f*math.tau/128*.25+depth*.45
+        vertices=[(max(2,min(317,round(cx+radius*math.cos(i*math.tau/8+angle)))),
+                   max(26,min(196,round(cy+radius*.54*math.sin(i*math.tau/8+angle))))) for i in range(8)]
+        style=2 if depth<.35 else 3 if depth>.8 else 1
+        tunnel+=words([style]+[v for xy in vertices+[vertices[0]] for v in xy])
+        rings.append((style,vertices))
+    if f==20:
+        preview=Image.new('RGB',(320,256),(3,5,20));pd=ImageDraw.Draw(preview)
+        for left,right in zip(rings,rings[1:]):
+            for i in range(0,8,2):pd.line([left[1][i],right[1][i]],fill=(88,64,167))
+        for style,vertices in rings:pd.line(vertices+[vertices[0]],fill={1:(64,221,255),2:(113,72,194),3:(255,207,235)}[style])
+        preview.resize((960,768),Image.Resampling.NEAREST).save(OUT/'neon-tunnel.png')
 put('TUNNEL_INDEX',longs(idx));put('TUNNEL',tunnel)
 
 # Roto: short native source rows. The blitter repeats each row eight times.
@@ -133,12 +164,12 @@ for f in range(64):
     a=f*math.tau/64;pitch=38+12*math.sin(f*math.tau/64)
     for row in range(20):
         colours=[]
-        for col in range(40):
-            x=(col-20)*8;y=(row-10)*8
+        for col in range(320):
+            x=col-160;y=(row-10)*8
             u=math.floor((x*math.cos(a)+y*math.sin(a))/pitch)
             v=math.floor((-x*math.sin(a)+y*math.cos(a))/pitch)
             colours.append(1 if (u+v)%2 else 2)
-        roto.extend(255 if c&1 else 0 for c in colours)
+        roto.extend(sum((colours[x+b]&1)<<(7-b) for b in range(8)) for x in range(0,320,8))
 put('ROTO',roto)
 rd=bytearray();ri=[]
 for f in range(64):

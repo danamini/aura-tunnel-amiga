@@ -30,7 +30,8 @@ def inspect(path):
     result={'sha256':hashlib.sha256(binary).hexdigest(),'base':base,'state':state,
             'pc':struct.unpack_from('>I',saved['CPU '],68)[0],
             'ticks':u32(state+16),'renders':u32(state+32),'scene':u16(state+26),
-            'scene_frame':u16(state+24),'muted':bool(u16(state+36))}
+            'scene_frame':u16(state+24),'muted':bool(u16(state+36)),
+            'graph_ticks_upper_bound':u16(state+166), 'graph_x':u16(state+56), 'graph_y':u16(state+58)}
     perf=u32(state+76)
     if perf and perf+80<=len(memory):
         names=json.loads((release/'scenes.json').read_text())

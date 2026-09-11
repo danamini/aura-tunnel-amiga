@@ -1,0 +1,13 @@
+{
+  "machine": "48K",
+  "corrected": true,
+  "completed": true,
+  "tstates": 557027926,
+  "seconds": 159.150836,
+  "timing": "Includes DIM/setup, excludes tape loading; real ROM with contention",
+  "candidate_evaluations": 1363,
+  "evaluations_per_second": 8.56420257823842,
+  "source": "https://github.com/danamini/aura-tunnel",
+  "comparison": "1363 candidates, ROM BASIC floating point versus native 68000 approximate Q14 EXP; implementation comparison, not CPU or BASIC-to-BASIC speed ratio.",
+  "source_revision": "2779d28f66cf49c6deff53ac0f42dab8cd9a2236"
+}

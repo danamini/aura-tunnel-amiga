@@ -1,6 +1,7 @@
 """Validate the built disk and native streams, independently of rendering code."""
 from pathlib import Path
 import hashlib,json,struct
+from hires_font import GLYPH_HEIGHT
 
 root=Path(__file__).resolve().parents[1];build=root/'build'
 disk=(build/'aura-tunnel-amiga.adf').read_bytes();binary=(build/'demo.bin').read_bytes()
@@ -46,9 +47,50 @@ assert any(a!=b for a,b in zip(cols[::2],cols[1::2])),'Hires just doubled pixels
 for off in set(cols):
     while code[off:off+2]!=b'\x4e\x75':
         op,y=struct.unpack_from('>HH',code,off)
-        assert op==0x8b29 and y%80==0 and 0<=y<24*80
+        assert op==0x8b29 and y%80==0 and 0<=y<GLYPH_HEIGHT*80
         off+=4
-assert max(struct.unpack('>'+'h'*(len(asset('HI_SINE'))//2),asset('HI_SINE')))+1280+23*80+79<4480
+assert max(struct.unpack('>'+'h'*(len(asset('HI_SINE'))//2),asset('HI_SINE')))+((56-GLYPH_HEIGHT)//2)*80+(GLYPH_HEIGHT-1)*80+79<4480
+# Every elastic program covers all 56 destination rows exactly once, with
+# either consecutive source rows or a repeated row. No crop reads past scratch.
+stretch=asset('HI_STRETCH');heights=[]
+for off in words(asset('HI_STRETCH_INDEX')):
+    end=0;occupied=0
+    while True:
+        source=struct.unpack_from('>H',stretch,off)[0];off+=2
+        if source==65535:break
+        dest,count,mod=struct.unpack_from('>HHh',stretch,off);off+=6
+        assert dest==end*80 and count>0 and mod in (-80,0)
+        if source!=65534:
+            assert source%80==0 and source+(count-1)*(80+mod)<4480
+            occupied+=count
+        end+=count
+    assert end==56
+    heights.append(occupied)
+assert min(heights)<20 and max(heights)==56,'Elastic range too subtle'
+assert any(b not in (0,255) for b in asset('ROTO')),'Roto still has byte-wide pixels'
+vertices=asset('TUNNEL')
+assert len(vertices)==128*6*38
+for off in range(0,len(vertices),38):
+    frame=words(vertices[off:off+38]);assert frame[0] in (1,2,3)
+    assert frame[1:3]==frame[-2:]
+    for x,y in zip(frame[1::2],frame[2::2]):assert 0<=x<320 and 24<=y<200
+# B-channel word shifts with a repeated A mask must reproduce each glyph
+# column, including negative shifts, both edges and the wrapped text seam.
+bitmap=asset('HI_BITMAP')
+constants=dict(__import__('re').findall(r'^(\w+) equ (\d+)$',(build/'assets.i').read_text(),__import__('re').M))
+stride=int(constants['HI_STRIDE']);width=int(constants['HIWIDTH'])
+for rowno in (0,17,GLYPH_HEIGHT-1):
+    row=''.join(f'{b:08b}' for b in bitmap[rowno*stride:(rowno+1)*stride])
+    for scroll in list(range(16))+list(range(width-16,width)):
+        for x in (0,1,15,16,31,319,627,639):
+            count=min(23,640-x);destbit=x%16;src=scroll+x
+            shift=destbit-src%16;dummy=shift<0;shift%=16
+            wordstart=src//16*16
+            fetched=row[wordstart:wordstart+80]
+            output=('0'*shift+fetched)
+            offset=destbit+16*dummy
+            assert output[offset:offset+count]==row[src:src+count]
+
 # Independently model the A-channel shift register and the discarded first
 # word for every fine-scroll phase, checking across a duplicated-strip seam.
 for name,height in [('TRAIN_LAYER0',20),('TRAIN_LAYER1',18),('TRAIN_LAYER2',16),('RUN_RIDGE',56)]:
