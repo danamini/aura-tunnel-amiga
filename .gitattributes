@@ -1,0 +1,5 @@
+# Pinned upstream inputs retain exact bytes for the provenance hash checks.
+assets/reference/** -text -whitespace
+*.adf binary
+*.gif binary
+*.bin binary

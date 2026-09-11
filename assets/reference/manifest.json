@@ -1,0 +1,22 @@
+{
+  "captured": "2026-09-11",
+  "source": "https://github.com/danamini/aura-tunnel",
+  "sha256": {
+    "src/main.asm": "ef56c3e8bb37a648d86824f706c678c61877a704916a493bdf701bc08b5eb52e",
+    "tools/gen_font.py": "b342937499763ec6a4962647f5cc7276e569d7d435f24bc56d9a28a172cc0e17",
+    "tools/gen_ay128.py": "4837d14faedd2b466d0c1afba93676deb17513910c7d5d5fa4819839d7d87f93",
+    "tools/basic_graph_program.py": "88429cd6c34aeae6f33f2625628bebddb83eb4b8fc124188a8712cc68d6a19de",
+    "build/runner.bin": "e375bb5443be30afa1b995e33584ad29889dcb85b945ff6cb279a2361d1f9c93",
+    "build/runner-small.bin": "32e1a20d7bc23c1b288ea856f33a1451e0505c13df04aef3210cd98a81bacd2e",
+    "build/runner-index.asm": "67d63bfabc3c971c78bd41ce9b9e2cdb233ae690e2cf2f98c2f2d35870493440",
+    "build/roto.bin": "78b7dc8d38c159da980bc6ccd95327416d9e367b3e69f4d498c48c8c5ec308fe",
+    "build/stars.bin": "c06c3ea56f2b4a54831e83ac74eb7cd8aefa5ae9b725a7d8e652edcb748c2dee",
+    "build/cubebig.bin": "ea2a0a2f07545b71bb2b5a68070659e5287ed969c86045ef1a91fc7be63a8503",
+    "build/minicube.bin": "fa0e9fbf0c2b9f404cd65d0caae12e9e0ec52772cae9d704d100a49c1b6e071e",
+    "assets/mocap/SOURCE.md": "6780306db0c545b30d8070daffc2e0b6a8ea866d9c9376f40b61c2f12c875ceb",
+    "assets/mocap/READMEFIRST.txt": "8e6fe2e640b3728ef2e43e722cb5ae9cdf0010028c0517c4226ed165f9037930",
+    "LICENSE": "80808e1352c83a4d3363ccb3c2480f82d13f9f34947e7e6a8caf2fd997e44359",
+    "tools/mocap_runner.py": "ac309af66d6f82713f8fd631c6ff1f784aa8b3b9405566442cbacb988daee5ba",
+    "assets/mocap/09_01.bvh": "90641ccca814b9d8d59f63576a548bb5612477364462d142a9f741268fbe3b78"
+  }
+}
