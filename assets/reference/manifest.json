@@ -17,6 +17,7 @@
     "assets/mocap/READMEFIRST.txt": "8e6fe2e640b3728ef2e43e722cb5ae9cdf0010028c0517c4226ed165f9037930",
     "LICENSE": "80808e1352c83a4d3363ccb3c2480f82d13f9f34947e7e6a8caf2fd997e44359",
     "tools/mocap_runner.py": "ac309af66d6f82713f8fd631c6ff1f784aa8b3b9405566442cbacb988daee5ba",
-    "assets/mocap/09_01.bvh": "90641ccca814b9d8d59f63576a548bb5612477364462d142a9f741268fbe3b78"
+    "assets/mocap/09_01.bvh": "90641ccca814b9d8d59f63576a548bb5612477364462d142a9f741268fbe3b78",
+    "build/gpat.bin": "dee2f5c433ded37522297cbc5db2ecf6a7842b8cbf5eb19e72d04f0b96c50c31"
   }
 }

@@ -35,19 +35,23 @@ for pose,start in enumerate(index):
         pos+=count*2
     assert pos==(index[pose+1] if pose+1<len(index) else len(body))
     assert seen,'Empty body pose'
-sprites=asset('FIGHTER_SPRITES')
-assert len(sprites)==47*3*232
+from roto_codec import decode
+fi=longs(asset('FIGHTER_INDEX'));fc=asset('FIGHTER_COMPRESSED')
+sprites=b''.join(decode(fc[a:b],696) for a,b in zip(fi,fi[1:]))
+assert sprites==(build/'fighter-raw.bin').read_bytes()
+assert len(sprites)==103*3*232
+assert max(words(asset('FIGHT_POSES')))<103
+assert any(47<=pose<56 for pose in words(asset('FIGHT_POSES'))[::2]),'New sweep is never scheduled'
 assert len({sprites[i:i+696] for i in range(0,len(sprites),696)})>35
 for offset in range(0,len(sprites),232):
     pos,ctl=struct.unpack_from('>HH',sprites,offset)
     assert (ctl>>8)-(pos>>8)==56
     assert sprites[offset+228:offset+232]==bytes(4)
-assert any(((b>>i)&1)!=((b>>(i+1))&1) for b in asset('HI_BITMAP') for i in (0,2,4,6)), 'Hires just doubled pixels'
+assert any(((b>>i)&1)!=((b>>(i+1))&1) for b in decode(asset('HI_BITMAP_PACKED'),len((build/'hi-bitmap-raw.bin').read_bytes())) for i in (0,2,4,6)), 'Hires just doubled pixels'
 chrome=words(asset('HI_CHROME'))
-assert len(chrome)==64*14 and all(c<4096 for c in chrome)
+assert len(chrome)==64*18 and all(c<4096 for c in chrome)
 assert len(set(chrome))>20, 'Chrome reflection needs a varied OCS ramp'
-assert max(struct.unpack('>'+'h'*(len(asset('HI_SINE'))//2),asset('HI_SINE')))+((56-GLYPH_HEIGHT)//2)*80+(GLYPH_HEIGHT-1)*80+79<4480
-# Every elastic program covers all 56 destination rows exactly once, with
+# Every elastic program covers all 72 destination rows exactly once, with
 # either consecutive source rows or a repeated row. No crop reads past scratch.
 stretch=asset('HI_STRETCH');heights=[]
 for off in words(asset('HI_STRETCH_INDEX')):
@@ -58,12 +62,12 @@ for off in words(asset('HI_STRETCH_INDEX')):
         dest,count,mod=struct.unpack_from('>HHh',stretch,off);off+=6
         assert dest==end*80 and count>0 and mod in (-80,0)
         if source!=65534:
-            assert source%80==0 and source+(count-1)*(80+mod)<4480
+            assert source%80==0 and source+(count-1)*(80+mod)<5760
             occupied+=count
         end+=count
-    assert end==56
+    assert end==72
     heights.append(occupied)
-assert min(heights)<20 and max(heights)==56,'Elastic range too subtle'
+assert min(heights)<20 and max(heights)==72,'Elastic range too subtle'
 from roto_codec import decode, checker_pose
 ri=longs(asset('ROTO_INDEX'));payload=asset('ROTO_COMPRESSED')
 assert len(ri)==65 and ri[-1]==len(payload)
@@ -80,7 +84,8 @@ for off in range(0,len(vertices),20):
     assert all(0<=x*2<320 and 24<=y<200 for x,y in points)
 # B-channel word shifts with a repeated A mask must reproduce each glyph
 # column, including negative shifts, both edges and the wrapped text seam.
-bitmap=asset('HI_BITMAP')
+bitmap=decode(asset('HI_BITMAP_PACKED'),len((build/'hi-bitmap-raw.bin').read_bytes()))
+assert bitmap==(build/'hi-bitmap-raw.bin').read_bytes()
 constants=dict(__import__('re').findall(r'^(\w+) equ (\d+)$',(build/'assets.i').read_text(),__import__('re').M))
 stride=int(constants['HI_STRIDE']);width=int(constants['HIWIDTH'])
 for rowno in (0,17,GLYPH_HEIGHT-1):
@@ -94,6 +99,24 @@ for rowno in (0,17,GLYPH_HEIGHT-1):
             output=('0'*shift+fetched)
             offset=destbit+16*dummy
             assert output[offset:offset+count]==row[src:src+count]
+
+# Every widened sine run advances by half as many source phases, covers
+# exactly 640 hires columns and keeps the full glyph inside its 72-row buffer.
+wave=words(asset('HI_WAVE_RUNS'))
+for start in range(512):
+    phase=start;x=0
+    while x<640:
+        count,offset=wave[phase*2:phase*2+2]
+        count=min(count,640-x)
+        assert count>0 and count%2==0
+        assert 0<=offset and offset+(GLYPH_HEIGHT-1)*80+79<5760
+        phase=(phase+count//2)%512;x+=count
+    assert x==640
+# Online artwork decodes into the exact borrowed scene-buffer limits.
+for i,height in enumerate((104,52)):
+    decoded=decode(asset(f'TRAIN_ART{i}'),height*96*2)
+    assert len(decoded)==height*192
+assert 104*192<=20480 and 52*192<=17280
 
 # Independently model the A-channel shift register and the discarded first
 # word for every fine-scroll phase, checking across a duplicated-strip seam.
@@ -112,3 +135,34 @@ spans=words(asset('PLANET_SPANS'))
 assert spans[132*2]<=65<spans[132*2+1]
 assert spans[24*2:24*2+2]==(320,320)
 print('PASS: disk checksum/payload, pinned sources, body bounds, fighter DMA, genuine hires columns, shifted parallax and planet occlusion spans')
+
+from fighter_choreography import self_test as test_jones
+test_jones()
+assert decode(asset('DANCE_PACKED'),len((build/'dance-raw.bin').read_bytes()))==(build/'dance-raw.bin').read_bytes()
+
+# Independently check every rotating highlight and its native 4x bit expansion.
+spin_index=longs(asset('BIG_SPIN_INDEX'));spin_data=asset('BIG_SPIN_PACKED')
+assert len(spin_index)==65 and spin_index[-1]==len(spin_data)
+quad=longs(asset('BIG_SPIN_QUAD'))
+assert len(quad)==256
+for value,expanded in enumerate(quad):
+    assert f'{expanded:032b}'==''.join(bit*4 for bit in f'{value:08b}')
+for family in range(4):
+    poses=[]
+    for angle in range(16):
+        idx=family*16+angle
+        pose=decode(spin_data[spin_index[idx]:spin_index[idx+1]],640 if angle==0 else 160)
+        assert any(pose), (family,angle)
+        poses.append(pose)
+    assert len(set(poses))>=12, 'Rotation poses need distinct silhouettes'
+assert set(asset('BIG_SPIN_MAP'))=={0,1,2,3,255}
+print('PASS: 64 rotating big-letter poses and native expansion table')
+
+# Both native tracks hold each authored pose for the same two-tick cadence.
+fight=words(asset('FIGHT_POSES'))
+for side in (0,1):
+    track=fight[side::2]
+    assert len(track)==256
+    assert all(len(set(track[i:i+2]))==1 for i in range(0,256,2))
+    assert sum(a!=b for a,b in zip(track,track[1:]))>=100
+print('PASS: both fighters have equal two-tick pose holds and active animation')

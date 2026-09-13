@@ -3,10 +3,10 @@
   "platform": "Amiga 500 / PAL / OCS / 68000",
   "memory": "512 KiB CHIP + 512 KiB slow; no fast RAM",
   "spectrum_source": "https://github.com/danamini/aura-tunnel",
-  "disk_sha256": "a324063100624eaff23816bb60346c475942730cf4672176b3bf7b4bbf85027e",
-  "binary_sha256": "18bcc9650b0a7a9bf56c0746e95a85218e5959dc3753afd3600418a79851248b",
-  "payload_bytes": 474986,
-  "chip_allocation_bytes": 479232,
-  "scene_cycle_seconds": 112.64,
+  "disk_sha256": "ddc286853cce7ebe36c1d9f6e6d0eec6612118c2843c9b3c680879fee10af174",
+  "binary_sha256": "5e82bfa5d2bcf8c205b9f38038611f25707ede4c729ddca4409f0081566db921",
+  "payload_bytes": 478056,
+  "chip_allocation_bytes": 482304,
+  "scene_cycle_seconds": 122.88,
   "limitations": "See docs/implementation-plan.md; this preview is not a finished release."
 }

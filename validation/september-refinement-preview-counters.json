@@ -1,0 +1,77 @@
+{
+  "sha256": "7455b6b654666815eb71a868bfeb96f8eb734bb66a96d805295520254a8d593d",
+  "base": 16560,
+  "state": 25854,
+  "pc": 16998,
+  "ticks": 9604,
+  "renders": 5315,
+  "scene": 1,
+  "scene_frame": 165,
+  "muted": false,
+  "graph_ticks_upper_bound": 0,
+  "graph_x": 0,
+  "graph_y": 0,
+  "performance": [
+    {
+      "scene": "BRIEFING",
+      "presented": 645,
+      "vblanks": 648,
+      "fps": 49.77
+    },
+    {
+      "scene": "NEON TUNNEL",
+      "presented": 531,
+      "vblanks": 1070,
+      "fps": 24.81
+    },
+    {
+      "scene": "COPPER ROTO",
+      "presented": 385,
+      "vblanks": 564,
+      "fps": 34.13
+    },
+    {
+      "scene": "STAR SNAKE",
+      "presented": 496,
+      "vblanks": 995,
+      "fps": 24.92
+    },
+    {
+      "scene": "SINE SCROLL",
+      "presented": 1145,
+      "vblanks": 3004,
+      "fps": 19.06
+    },
+    {
+      "scene": "SOLID CUBES",
+      "presented": 773,
+      "vblanks": 775,
+      "fps": 49.87
+    },
+    {
+      "scene": "DOT RUNNER",
+      "presented": 363,
+      "vblanks": 728,
+      "fps": 24.93
+    },
+    {
+      "scene": "DEEP SPACE",
+      "presented": 215,
+      "vblanks": 216,
+      "fps": 49.77
+    },
+    {
+      "scene": "3D GRAPHS",
+      "presented": 10,
+      "vblanks": 11,
+      "fps": 45.45
+    },
+    {
+      "scene": "NIGHT TRAIN",
+      "presented": 415,
+      "vblanks": 833,
+      "fps": 24.91
+    }
+  ],
+  "scope": "Cumulative cycle-exact preview counters across manual scene checks and automatic playback; not a clean uninterrupted benchmark."
+}

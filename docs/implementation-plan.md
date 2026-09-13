@@ -168,8 +168,8 @@ capture if it recurs; do not attribute it to Copper rollover without evidence.
   128 ticks; total graph-scene duration remains 512 ticks (10.24 seconds).
 - Tunnel: ten rings, cubic depth spacing and a two-pixel vanishing radius.
   Compact two-byte vertices retain the 128-phase sequence and free CHIP RAM.
-  The walls remain wireframe; filled checker walls are a further experiment,
-  not implemented or claimed in this build.
+  At that earlier checkpoint the walls remained wireframe; the current
+  filled-wall implementation is recorded in the September 13 checklist below.
 - Roto: 64 independent 320×80 poses, compressed with bounded LZSS, decoded
   only when the pose changes into alternate 3,200-byte CHIP buffers. Copper
   repeats each source row twice instead of eight times: four times the vertical
@@ -191,3 +191,128 @@ plot cropped by 104 rows plus the incoming plot's first 104 rows. Its caption
 was visually stationary; evidence is in `validation/graph-slide.json`.
 Chrome lettering, stable cube materials and the clear lower Night Train skyline
 were visually checked. These remain emulator checks, not physical hardware tests.
+
+## Current requested tweaks (13 September)
+
+Implemented and built; combined runtime evidence is in
+`validation/september-refinement*.json`:
+
+- Checker tunnel uses half-open parity edges and one blitter area fill. The
+  reciprocal depth projection carries near walls past the viewer; dotted radial
+  spokes and the near rim outline are removed. All 128 phases pass closed-parity,
+  bounds and nearest-ring coverage checks in `validation/tunnel-geometry-check.py`.
+  The first combined run measured 24.94 fps, versus roughly 14 fps for the earlier
+  filled version. This is a 25 fps target result, not a 50 fps claim.
+- Two foreground meteors cross horizontally at fixed heights. Their 352-pixel
+  cycles wrap outside the 320-pixel view; unused sprite channels are cleared.
+- Star Snake has three additional orbiting cubes. Its small scrolling message
+  now describes this Amiga port and credits the Spectrum original.
+- Solid Cubes has one hero and eight satellites with distinct rotation phases.
+- The central sine scroller uses actual 640-column lettering, a 144-line display
+  band and twice the previous vertical wave amplitude. Broad sine runs reduce
+  blitter setup calls; Copper repeats rows and animates coloured chrome
+  reflections. Text travels faster and stretches twice as often as before.
+- Runner scene retains its longer duration, slow/fast companions and R body/dot
+  comparison. The California coast adds palms, houses and warm sunset colours.
+  Opaque silhouette palette entries put the sun behind the palms. Ground lines
+  use the pinned Spectrum pattern at independent near/far speeds.
+- Music starts on. The framed HUD shows LMB: NEXT, RMB: ON/OFF and FPS; a custom
+  pixel alphabet and slow colour cycle improve readability. Footer credits ZX.
+- Graph plots are centred horizontally and raised clear of the footer. Both
+  slide rectangles are clipped to a 116-line viewport, preserving a lower gap
+  even while the incoming plot enters. Existing blitter slide transitions and measured implementation
+  comparison remain.
+- Night Train stars move at one eighth their previous rate and stop above the
+  skyline. R switches the original art to Jones plus Mustermann and sourced city
+  and train artwork. The new city spans a continuous 104-line backdrop, rather
+  than the initially flattened disconnected strips.
+- Fighter sprites occupy channels 0–2 and 4–6, leaving channel 3 empty so each
+  character has its own palette. 56 Mustermann and 47 Jones poses are compressed
+  independently; active poses decode into inactive buffers shared with the roto
+  scene. Expanded pose tracks follow the original approach/retreat and attack
+  cues. This is a selected subset, not every move in the source packs.
+- Full original downloads from three CC0 packs are archived separately at
+  `/Users/daniel/per-dev/reference-assets/fighters`: 120 files, original source
+  pages, licence evidence and verified SHA-256 manifests. CREDITS and fighter
+  provenance are current; packaging places redistribution notices beside the ADF.
+
+Research adopted: Oxyron's [Planet Rocklobster](https://github.com/AxisOxy/Planet-Rocklobster)
+uses precalculated tunnel geometry with real-time Amiga blitter drawing/filling.
+The [hardware manual](https://www.theflatnet.de/pub/cbm/amiga/AmigaDevDocs/hard_6.html)
+and [subpixel blitter line examples](https://github.com/Kalmalyzer/subpixel-blitter-line)
+informed the edge/fill audit. No third-party engine code was copied.
+
+The broader OCS plan remains a development stream: physical-hardware testing,
+full-playlist performance targets, richer transitions and exact airborne/sweep
+fighter choreography remain refinements. The two characters do not yet use all
+available moves, and some original attack cues map to the closest selected kick.
+Historical measurements above describe earlier builds; they are not current
+full-playlist performance claims.
+
+### Follow-up acceptance fixes
+
+- HUD mouse hints now follow button order and one format: LMB: NEXT on the left,
+  RMB: ON/OFF on the right.
+- Opening screen and README explain the AI-assisted creative experiment and
+  the learning comparison between the same scenes on two machines.
+- Big sine lettering now uses its final display mode from frame zero, removing
+  the half-second small/large switch. This scene enters directly instead of
+  reusing the outgoing two-plane transition bitmap as both font and transition.
+- Star Snake's small text has individual rotating letters, changing amplitude
+  and spatial frequency, a moving colour fill and new comparison-focused copy.
+  It has 15.36 seconds to let the message and motion develop. Rotation masks are
+  compressed and cached in unused hires buffers, then drawn by blitter.
+- Jones's original 160ms compressed attack cues caused skipped poses. The new
+  scheduler completes each authored sequence at a fixed cadence and completes attacks/recovery;
+  guard is retained while travelling. Short conflicting cues are coalesced,
+  while the original position track remains unchanged. Both position and pose
+  clocks use the shared half-speed choreography clock. The current pose hold
+  is two choreography ticks, or four PAL ticks, for both characters.
+- City art is now composed as a complete 104-line image instead of separate
+  flattened building bands. Train carriages preserve source proportions below
+  the deck. The 256 × 52 carriages now sit below a raised deck; their cache borrows
+  inactive hires memory. Source rows use a 96-byte stride; buffer bounds
+  are checked. City colours remain consistent across its whole height.
+
+### Big-letter rotation follow-up
+
+- The large message reads `ZX SPECTRUM TO AMIGA / AI`. AI/ZX glyphs rotate
+  individually through 16 angles with staggered timing, returning upright
+  between rolls. The remainder stays upright for readability. Rotation changes
+  the cached source mask before the existing blitter wave/stretch rendering;
+  this is a 68000 lookup/decode technique, not a hardware rotation instruction.
+- Upright glyphs retain 128 source columns. Compact spinning masks use 32
+  columns expanded fourfold through a lookup table, keeping within 512 KiB CHIP.
+  All 64 poses and the expansion table have independent artifact checks.
+- Small-letter rolls now have 16 angles and slower horizontal/temporal motion.
+- Mustermann's fixed crop extends six source pixels left to retain sweep poses.
+- Closer Night Train parallax remains an open interpretation: foreground layer
+  versus a nearer star layer. Existing city/train layers already move separately.
+
+Validation for binary `7455b6b654666815eb71a868bfeb96f8eb734bb66a96d805295520254a8d593d`:
+`make test` passes, and the native spinning-font cache plus wrapped prefix
+matches all 19,920 expected bytes in an FS-UAE save state. The larger carriages
+and the slower 16-angle small-letter rolls were checked in the emulator.
+The big scroller currently presents about 18–20 FPS with these effects; further
+optimisation is outstanding. This is cycle-exact A500 emulation, not a physical
+machine measurement.
+
+### Matched fighter timing and raised skyline
+
+Both fighters use the same complete-clip scheduler and four PAL ticks per
+stored pose (12.5 poses per second). Mustermann's three distinct kicks are
+separate complete clips; a brief sweep cue waits for the current kick to recover
+instead of being lost. Artifact checks cover consistent holds, complete kicks,
+deferred sweeps and the loop seam. Positional approach/retreat retains the
+shared half-speed Spectrum track.
+
+The sourced city is raised 24 pixels, from y56 to y32, with star clipping
+following the same named position constant. The fighter deck and 52-pixel
+carriages stay in place. Closer foreground/star parallax remains a separate
+outstanding idea.
+
+Latest packaged binary: `5e82bfa5d2bcf8c205b9f38038611f25707ede4c729ddca4409f0081566db921`.
+The faster matched fight and raised skyline were checked in FS-UAE; native
+spinning-font validation passes again for this binary. The fighter scene
+measured about 24 FPS during the preview. `validation/` records build hashes;
+preview counters include manual scene selection and are not a clean benchmark.

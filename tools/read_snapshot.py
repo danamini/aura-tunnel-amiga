@@ -21,9 +21,18 @@ def inspect(path):
     binary=(release/'demo.bin').read_bytes()
     listing=(release/'demo.lst').read_text()
     def symbol(name):return int(re.search(r'^'+name+r'\s+A:([0-9A-Fa-f]+)$',listing,re.M)[1],16)
-    saved=chunks(path);memory=saved['CRAM'];marker=memory.find(b'AURA500!')
-    assert marker>=0,'Native program marker not present'
-    base=marker-symbol('stats_magic');state=base+symbol('state')
+    saved=chunks(path);memory=saved['CRAM']
+    # The floppy staging copy can retain the marker; select the relocated live
+    # program by its BASE self-pointer, not the first matching byte string.
+    candidates=[]
+    for match in re.finditer(re.escape(b'AURA500!'),memory):
+        candidate=match.start()-symbol('stats_magic')
+        state_address=candidate+symbol('state')
+        if 0<=state_address and state_address+256<=len(memory):
+            if struct.unpack_from('>I',memory,state_address+68)[0]==candidate:
+                candidates.append((candidate,state_address))
+    assert len(candidates)==1,'Expected one active native program'
+    base,state=candidates[0]
     assert memory[base:base+128]==binary[:128],'Snapshot does not match launched binary'
     u16=lambda a:struct.unpack_from('>H',memory,a)[0]
     u32=lambda a:struct.unpack_from('>I',memory,a)[0]

@@ -6,8 +6,8 @@ GLYPH_HEIGHT=40
 def generate(font,text,output):
     columns=[]
     for char in text:
-        for x in range(64):
-            pattern=0;px=(x+.5)/2-.5
+        for x in range(128):
+            pattern=0;px=(x+.5)/4-.5
             for y in range(GLYPH_HEIGHT):
                 py=(y+.5)*24/GLYPH_HEIGHT-.5
                 lit=False
