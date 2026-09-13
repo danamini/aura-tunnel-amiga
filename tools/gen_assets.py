@@ -368,7 +368,7 @@ put('RUN_CACHE_INDEX',words(cache_index));put('RUN_CACHE',cache)
 from runner_bodies import generate as generate_bodies
 body_index,body_data=generate_bodies(REF,OUT)
 put('BODY_INDEX',longs(body_index));put('BODY_DATA',body_data)
-# 47 authored poses (guard, punches, kicks and recoveries), Puffolotti CC0.
+# Selected Mustermann and Jones poses, Puffolotti CC0.
 # Keep a single canonical direction; the 68000 mirrors into an inactive DMA
 # bank using a byte reversal LUT, saving another 32 KiB of CHIP memory.
 mustermann_sequence=list(range(4,27))+list(range(140,164))+list(range(810,819))

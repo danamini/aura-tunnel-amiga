@@ -13,7 +13,8 @@ the Spectrum and Amiga, from Z80 and 68000 code to colour, memory, sprites,
 Copper, blitter and sound. Keeping the scene structure makes those differences
 easier to see and understand.
 
-**Development preview, 13 September 2026.** The visual pass is unfinished.
+**Development preview, 13 September 2026.** This checkpoint includes the broad
+visual upgrade; performance tuning and hardware validation remain.
 [Download the bootable ADF](dist/aura-tunnel-amiga.adf) with its [notices](dist/NOTICE.txt), or build from source.
 Known display and performance issues are recorded in the [implementation plan](docs/implementation-plan.md#verification-and-remaining-refinement).
 

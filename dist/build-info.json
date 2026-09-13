@@ -1,5 +1,5 @@
 {
-  "status": "parked development preview",
+  "status": "development preview",
   "platform": "Amiga 500 / PAL / OCS / 68000",
   "memory": "512 KiB CHIP + 512 KiB slow; no fast RAM",
   "spectrum_source": "https://github.com/danamini/aura-tunnel",

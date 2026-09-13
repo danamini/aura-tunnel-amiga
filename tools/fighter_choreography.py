@@ -2,7 +2,8 @@
 
 Original eight-tick action cues are shorter than a complete modern animation.
 Finish each accepted attack and recovery before sampling the current cue again;
-do not queue obsolete attacks or resample a whole animation into eight ticks.
+Only a priority sweep cue is retained until recovery; ordinary conflicting
+cues are coalesced instead of squeezing a whole animation into eight ticks.
 """
 
 
@@ -63,7 +64,7 @@ def mustermann_pose_track(fight_steps, source_indices, bank_offset=0,
                          ticks_per_pose=4):
     """Keep original source poses, split the three separate kick recoveries.
 
-    Source140..163 contains several kicks, not one 24-pose attack. Each selected
+    Source frames 140..163 contains several kicks, not one 24-pose attack. Each selected
     subclip includes its wind-up, extension and recovery; no stride sampling.
     """
     lookup = {source: index for index, source in enumerate(source_indices)}
