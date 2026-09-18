@@ -18,6 +18,28 @@ visual upgrade; performance tuning and hardware validation remain.
 [Download the bootable ADF](dist/aura-tunnel-amiga.adf) with its [notices](dist/NOTICE.txt), or build from source.
 Known display and performance issues are recorded in the [implementation plan](docs/implementation-plan.md#verification-and-remaining-refinement).
 
+## Quick start
+
+The quickest dependable route is FS-UAE:
+
+1. Download the [Amiga v1.0 release](https://github.com/danamini/aura-tunnel-amiga/releases/tag/amiga-v1.0)
+   and its `aura-tunnel-amiga.adf` file.
+2. Install [FS-UAE for macOS](https://fs-uae.net/download/macos/), Windows or Linux.
+3. Open the ADF in FS-UAE using an Amiga 500 / PAL configuration.
+
+From this repository, the included launcher does those setup steps for you:
+
+```bash
+cd /Users/daniel/per-dev/aura-tunnel-amiga
+python3 tools/emulate.py
+```
+
+Booting takes around 30–40 seconds with cycle-exact floppy speed. For a
+browser experiment, try [Copperline](https://copperline.dev/try/), an Amiga
+WebAssembly emulator that supports loading ADF files. Browser compatibility and
+Kickstart-ROM requirements can vary, so use FS-UAE when you want the closest
+repeatable A500 comparison.
+
 Run `make setup` to create a Python environment, install the pinned Pillow version
 and build a pinned vasm revision. Then run `make test` and `make emu`. The macOS launcher defaults
 to `/Applications/FS-UAE.app/Contents/MacOS/fs-uae`; set `FS_UAE` for another path.
