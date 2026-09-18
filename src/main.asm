@@ -1598,6 +1598,9 @@ train_parallax:
         lsr.w #2,d4
         bra.s .original
 .car:
+        ; The carriage is the near layer. Restore one source pixel per VBL
+        ; after the shared half-speed setup; the city remains deliberately slow.
+        add.w d4,d4
         move.l BASE(a5),a2
         add.l #hires_a-start,a2
         move.w #144,d5

@@ -49,6 +49,8 @@ help create things and learn how the two machines differ. Music starts on.
 - Night Train has a complete 104-line city image raised to y32, 52-line carriages,
   separate scrolling speeds and slow stars clipped above the skyline. R switches
   sourced artwork to the original procedural backdrop and fighter comparison.
+  The near carriage advances one source pixel per VBL; the city remains slower
+  so the depth separation stays visible.
 - Mustermann and Jones use hardware sprite channels 0–2 and 4–6 with separate
   palettes and foreground priority. Their compressed banks contain 56 and 47
   poses respectively. Both use four PAL ticks per selected pose, with complete
