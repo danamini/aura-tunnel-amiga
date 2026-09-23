@@ -1,0 +1,10 @@
+{
+  "converter_revision": "fa9c93cd304ead7076e0fce8a1c89d9286d81f9c",
+  "sha256": {
+    "assets/music/k0w-rsnd.mod": "0c5cfb456c163a141bfa733792946eb7012c622ae79292c505c748a546c27e0b",
+    "assets/music/robotsound.lsmusic": "4ef671e3871b6d931934accf6d7699713b5ea0e238eb38bc4441177da8966ad9",
+    "assets/music/robotsound.lsbank": "f356f0f0ee07a3ab36fc24f93f55266a497d1d1700c8fc2fac4f80c644a257b2",
+    "vendor/lsplayer/LightSpeedPlayer.asm": "451d3c7870ae6ee163534b1122f9f581cfdfe5fab821c9573de2400dafdae359",
+    "vendor/lsplayer/LICENSE": "e8e3ea6ef611632c79f05c4fac874ceee398de00f87c70348f7ba6f889c51afa"
+  }
+}

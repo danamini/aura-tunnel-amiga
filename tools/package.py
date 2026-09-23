@@ -16,7 +16,9 @@ shutil.copyfile(build/'music-preview.wav', dest/'music-preview.wav')
 # Only normalize presentation whitespace; retain every notice's text and source.
 notice_sources = [
     'CREDITS.md', 'LICENSE', 'assets/reference/LICENSE',
-    'assets/fighters/SOURCE.md', 'assets/reference/assets/mocap/SOURCE.md',
+    'assets/fighters/SOURCE.md', 'assets/music/SOURCE.md',
+    'vendor/lsplayer/README.md', 'vendor/lsplayer/LICENSE',
+    'assets/reference/assets/mocap/SOURCE.md',
     'assets/reference/assets/mocap/READMEFIRST.txt',
 ]
 notices = []
@@ -30,7 +32,7 @@ allocation = ((len(binary) + 511) & ~511) + 4096
 scenes = json.loads((build / 'scenes.json').read_text())
 metadata = {
     'status': 'release',
-    'release': 'amiga-v1.1',
+    'release': 'amiga-v1.2',
     'platform': 'Amiga 500 / PAL / OCS / 68000',
     'memory': '512 KiB CHIP + 512 KiB slow; no fast RAM',
     'spectrum_source': 'https://github.com/danamini/aura-tunnel',
@@ -38,6 +40,9 @@ metadata = {
     'binary_sha256': hashlib.sha256(binary).hexdigest(),
     'payload_bytes': len(binary),
     'chip_allocation_bytes': allocation,
+    'slow_allocation_bytes': ((len((build/'music-score.bin').read_bytes())+511)&~511),
+    'soundtrack': '"robotsound" by k0wax (CC0)',
+    'soundtrack_sha256': hashlib.sha256((root/'assets/music/k0w-rsnd.mod').read_bytes()).hexdigest(),
     'scene_cycle_seconds': sum(scene['ticks'] for scene in scenes) / 50,
     'validation_notes': 'See docs/implementation-plan.md for emulator measurements and hardware validation status.',
 }

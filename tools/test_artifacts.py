@@ -258,56 +258,58 @@ for data,size in ((b'',2),(b'\x00\x00',2),(b'\x80\x02\x00\x00',2),(b'\x00\x01',2
     except ValueError:pass
     else:raise AssertionError('Malformed background stream accepted')
 print('PASS: full counterclockwise backdrop rotation and exact sunset cache')
-# Independent parts, full waveform cycles, and safe Paula DMA descriptors.
-from music import PAL_CLOCK, WAVE_SIZE, STEP_TICKS, SECTION_STEPS, SCENE_THEMES
-packed=words(asset('VOLUME_TRACK'))
-assert len(packed)==2560
-tracks=[[(v>>shift)&15 for v in packed] for shift in (12,8,4,0)]
-assert len({tuple(t) for t in tracks})==4
-assert all(max(t)>=9 and 0 in t and len(set(t))>=3 for t in tracks)
-notes=list(struct.iter_unpack('>HH',asset('SCORE')))
-assert len(notes)==256*4
-instruments=list(struct.iter_unpack('>IHH',asset('MUSIC_INSTRUMENTS')))
-samples=asset('MUSIC_SAMPLES')
-assert len(instruments)==13
-for i,(offset,length,_) in enumerate(instruments):
-    assert offset%2==0 and length>0 and offset+length*2<=len(samples)
-    if i<8:
-        assert length*2==WAVE_SIZE
-        signed=[v if v<128 else v-256 for v in samples[offset:offset+length*2]]
-        assert abs(sum(signed))<=WAVE_SIZE and max(signed)>40 and min(signed)<-40
-assert samples[instruments[-1][0]:]==bytes(2), 'One-shot silent loop'
-for per,instrument in notes:
-    assert per==0 or 124<=per<=65535
-    assert instrument<len(instruments)-1
-for section in range(4):
-    start=section*SECTION_STEPS*4
-    rows=notes[start:start+SECTION_STEPS*4]
-    assert {i for _,i in rows[0::4]}=={section}, 'Section lead timbre'
-    assert len({p for p,_ in rows[2::4] if p})>=6, 'Arpeggio must move'
-    assert {i for p,i in rows[3::4] if p}=={8,9,10,11}, 'Complete drum kit'
-assert bytes(SCENE_THEMES)==asset('MUSIC_SCENES')
-# Check authored lead pitches against the untouched reference stream's note list.
-import ast
-source=ast.parse((ref/'tools/gen_ay128.py').read_text())
-# The four melody literals are read as data, without re-running the generator.
-melodies=[]
-for node in source.body:
-    if not isinstance(node,ast.Assign): continue
-    names=[t.id for t in node.targets if isinstance(t,ast.Name)]
-    if 'MELODY' in names and isinstance(node.value,ast.List):
-        melodies.extend(ast.literal_eval(node.value)[:64])
-    elif any(name in ('DRIVE','ODE','NIGHT') for name in names):
-        melodies.extend(None if n=='-' else n for n in ast.literal_eval(node.value.func.value).split())
-from music import pitch
-assert len(melodies)==256
-for step,note in enumerate(melodies):
-    per=notes[step*4][0]
-    if note:
-        expected=440*2**((pitch(note)-69)/12)
-        assert abs(1200*__import__('math').log2(PAL_CLOCK/(WAVE_SIZE*per)/expected))<7
-    else: assert per==0
-print('PASS: four independent parts, four themes, correct pitches and one-shot DMA banks')
+# Decode the actual imported track across two complete loops. Check disk placement,
+# all DMA ranges, independent channel activity and the exact rewind stream pointers.
+from music import bake
+_, music = bake()
+assert asset('MUSIC_SAMPLES') == music.bank
+score_payload = (build/'music-score.bin').read_bytes()
+assert score_payload[:len(music.score)] == music.score
+levels = words(score_payload[len(music.score):])
+assert len(levels) == music.ticks
+music_offset = 1024 + ((len(binary)+511)&~511)
+assert disk[music_offset:music_offset+len(score_payload)] == score_payload
+frames = list(music.frames(music.ticks*2))
+assert music.ticks == 8837
+assert len({tuple(f['volumes'][c] for f in frames) for c in range(4)}) == 4
+assert all(any(f['volumes'][c] for f in frames) for c in range(4))
+for frame in frames:
+    for pointer, length in zip(frame['pointers'],frame['lengths']):
+        assert pointer%2 == 0 and length > 0 and pointer+length*2 <= len(music.bank)
+for first, second in zip(frames[:music.ticks],frames[music.ticks:]):
+    for key in ('volumes','periods','dma','byte_offset','word_offset'):
+        assert first[key] == second[key], (key,first['tick'])
+# Preserve the author's original MOD and all pinned conversion/engine inputs.
+provenance=json.loads((root/'assets/music/manifest.json').read_text())
+for name,digest in provenance['sha256'].items():
+    assert hashlib.sha256((root/name).read_bytes()).hexdigest()==digest,name
+# Regression: one-shot samples must stop lighting a meter even when the MOD
+# volume stays nonzero. Each real channel must move at constant volume.
+for channel in range(4):
+    heights = [(level >> (12-channel*4)) & 15 for level in levels]
+    assert max(heights) > 4 and 0 in heights
+    assert any(heights[i] != heights[i-1] and
+               frames[i]['volumes'][channel] == frames[i-1]['volumes'][channel]
+               for i in range(1,music.ticks)), 'Meter follows volume setting only'
+    assert any(h == 0 and frame['volumes'][channel] > 0
+               for h,frame in zip(heights,frames)), 'Silent sample leaves the meter lit'
+from music import preview
+from tempfile import TemporaryDirectory
+class MeterFixture:
+    # Zero loop, then a loud pulse. All volume settings are constant throughout.
+    bank = bytes(2) + bytes([127,129])*32
+    def frames(self):
+        for tick in range(20):
+            yield {'dma':15 if tick == 0 else 0, 'periods':(428,)*4,
+                   'volumes':(64,64,16,64),
+                   'pointers':(2 if tick == 0 else 0,0,2,2),
+                   'lengths':(32 if tick == 0 else 1,1,32,32)}
+with TemporaryDirectory() as directory:
+    fixture = words(preview(Path(directory)/'meter.wav',MeterFixture()))
+assert fixture[0] >> 12 == 15 and fixture[9] >> 12 == 0, 'One-shot must decay'
+assert all((v >> 8) & 15 == 0 for v in fixture), 'Silent samples must not light'
+assert all(0 < ((v >> 4) & 15) < (v & 15) for v in fixture), 'Volume scales peaks'
+print('PASS: MOD loops, DMA bounds and sample-driven meters at constant volume')
 # Reproduce all foreground stamp addresses over the complete train scene.
 import math
 for frame in range(512):
@@ -317,7 +319,7 @@ for frame in range(512):
         y=((leaf*29+round(math.sin(((frame+leaf)&255)*math.tau/256)*16))&127)+48
         off=y*40+(x//16)*2
         assert x//16*2+4<=40 and 24*40<=off and off+84<=200*40
-print('PASS: compact cube bank, roto backdrop, four-part music and leaf write bounds')
+print('PASS: compact cube bank, roto backdrop, MOD music and leaf write bounds')
 
 # The fast right-facing bank is an exact bit mirror of the source Jones poses.
 ri=longs(asset('RIGHT_FIGHTER_INDEX'));rp=asset('RIGHT_FIGHTER_PACKED')

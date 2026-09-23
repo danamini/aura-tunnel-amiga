@@ -1,7 +1,7 @@
 # Aura Tunnel Amiga implementation plan
 
-Status: Amiga v1.1, 23 September 2026. The visual and performance
-refinement pass is implemented. Further work is listed below.
+Status: Amiga v1.2, 23 September 2026. The robotsound soundtrack, sample-driven
+HUD meters, and visual and performance refinement pass are implemented.
 
 Target: PAL Amiga 500, normal-speed 68000, OCS, 512 KiB CHIP and 512 KiB slow RAM.
 The boot demo takes over the machine. VBL interrupts preempt rendering for timing
@@ -10,7 +10,7 @@ and Paula music; AmigaOS multitasking does not run underneath it.
 ## Comparison brief
 
 Preserve the [Spectrum demo's](https://github.com/danamini/aura-tunnel) ten scenes,
-order, musical themes and recognisable choreography. Scene durations and rendering
+order and recognisable choreography. The Amiga now uses its own selected MOD soundtrack. Scene durations and rendering
 can change to make the comparison readable. This is an experiment in using AI to
 help create things and learn how the two machines differ. Music starts on.
 
@@ -147,7 +147,8 @@ The requested research and tunnel subagents reviewed
 [Modulo Tricks](https://powerprograms.nl/amiga/modulo-tricks.html) and
 [Gradient Blaster](https://github.com/grahambates/gradient-blaster).
 They informed the geometry, wrapping, row reuse and palette work. No third-party
-engine code was imported. HAM and a framework/music-player migration are deferred.
+graphics engine code was imported. The later MOD update imports the credited
+Light Speed Player. HAM and a graphics framework migration remain deferred.
 [Bartman's debugger](https://github.com/BartmanAbyss/vscode-amiga-debug) remains an
 optional profiling tool; use strict OCS settings when configuring it.
 
@@ -157,7 +158,10 @@ beside the ADF. The three full CC0 fighter packs are archived separately under
 `/Users/daniel/per-dev/reference-assets/fighters`, with source pages and SHA-256
 manifests. They are not part of the demo repository or disk.
 
-## Four-channel arrangement, 23 September 2026
+## Earlier four-channel arrangement, 23 September 2026
+
+This section records the v1.1 arrangement, superseded by the robotsound update
+below. Its saved measurements are retained as historical evidence.
 
 `tools/music.py` arranges the four pinned melodies for independent lead, bass,
 arpeggio and percussion voices. Eight complete 16-sample tonal waveforms replace
@@ -377,3 +381,62 @@ Outstanding work:
 Earlier measurements and implementation decisions are retained in
 [the refinement history](refinement-history.md). Each validation JSON identifies
 its own binary; older results do not describe the latest build.
+
+
+## Robotsound MOD soundtrack, 23 September 2026
+
+The user-selected **"robotsound" by k0wax** replaces the procedural four-theme
+arrangement. The original four-channel MOD is retained unchanged, with its CC0
+source link and embedded Basehead sample attribution in
+[music provenance](../assets/music/SOURCE.md). The native replay code is the
+MIT-licensed standard Light Speed Player v1.31, pinned and credited under
+[vendor/lsplayer](../vendor/lsplayer/README.md).
+
+The converter prepares a fixed 50 Hz event stream. The track's speed changes
+are preserved; its complete pass is 8,837 ticks, approximately 176.74 seconds.
+The score loops independently of the scene clock. Direct scene selection,
+automatic transitions, mute and scene pause never reinitialise it. The four shadow volume registers feed Paula. Mute writes zero to Paula while
+the underlying music events continue. The HUD uses separate sample-peak
+envelopes rather than the persistent volume settings.
+
+The 19,754-byte score and 17,674-byte meter table occupy a 37,888-byte
+allocation in the A500's slow RAM. The 13,994-byte sample bank stays in CHIP RAM. The boot loader reads the score
+from the sectors following the aligned graphics/code payload. CHIP allocation is
+482,304 bytes, below the unchanged 483,328-byte project ceiling. Target hardware
+remains 512 KiB CHIP plus 512 KiB slow RAM, with no fast-memory expansion.
+
+`make test` decodes two complete loops, checks channel activity, stream rewind,
+DMA ranges, boot checksum, separate score placement and pinned source hashes.
+The source-conversion script reproduced the checked-in score and sample bank
+byte for byte. The WAV preview is generated from those same converted events.
+
+[Native emulator observations](../validation/robotsound-native.json) were checked
+using `validation/music-native-check.py` against the immutable launched build.
+Actual Paula periods, volumes, sample pointers and lengths matched the decoded
+score, as did the native replay stream pointers. Observations include selecting
+Night Train mid-song, playback after the loop boundary, mute, unmute while scene
+animation remained paused, and resuming animation. Music ticks remained equal to
+total VBL ticks throughout. These are cycle-exact FS-UAE checks, not real-hardware
+measurements.
+
+
+### HUD meter correction
+
+The initial MOD integration displayed Paula volume settings. These can stay
+nonzero after a one-shot sample reaches silence, so the bars appeared stuck.
+`tools/music.py` now derives per-channel peaks while rendering the same sample
+stream used for the preview. A square-root response keeps quieter parts visible;
+falloff is two of fifteen level steps per PAL tick, up to 160 ms from a full peak.
+The packed table lives beside the score in slow RAM. A small VBL update selects
+the current levels and clears them when muted. The waveform and MOD replay are
+unchanged, and the CHIP allocation remains 482,304 bytes.
+
+The regression checks cover a loud one-shot fading to zero at constant volume,
+a silent sample with a nonzero volume setting, and quieter versus louder looping
+samples. Every real soundtrack channel must change height while its volume
+setting remains constant and must have silent tails whose meters reach zero.
+
+Native FS-UAE checks also verified the new level words against the packed meter
+table, observed a zero meter with a nonzero channel volume, and checked all four
+visible bar pixel columns were clear while muted. Observations remain in
+`validation/robotsound-native.json`, distinguished by the loaded binary hash.

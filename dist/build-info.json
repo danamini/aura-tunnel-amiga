@@ -1,13 +1,16 @@
 {
   "status": "release",
-  "release": "amiga-v1.1",
+  "release": "amiga-v1.2",
   "platform": "Amiga 500 / PAL / OCS / 68000",
   "memory": "512 KiB CHIP + 512 KiB slow; no fast RAM",
   "spectrum_source": "https://github.com/danamini/aura-tunnel",
-  "disk_sha256": "7649ae2629e1e00ffb7628420664f8893783eb91101158c21b13184c3b42330a",
-  "binary_sha256": "d7aee02a5adf33da24597b4c287d4d55aaaad1af069bdf8d6c2421ba17b816b3",
-  "payload_bytes": 474700,
-  "chip_allocation_bytes": 479232,
+  "disk_sha256": "a14a104f06bbd5c1dd5d9e704de2606867a3eeb526ab40750ad95ef67c69ed3e",
+  "binary_sha256": "bb9a6223876baa7ec358c714b389d4cd1ef0d1200441df15da3f1894490bf59c",
+  "payload_bytes": 478072,
+  "chip_allocation_bytes": 482304,
+  "slow_allocation_bytes": 37888,
+  "soundtrack": "\"robotsound\" by k0wax (CC0)",
+  "soundtrack_sha256": "0c5cfb456c163a141bfa733792946eb7012c622ae79292c505c748a546c27e0b",
   "scene_cycle_seconds": 128.0,
   "validation_notes": "See docs/implementation-plan.md for emulator measurements and hardware validation status."
 }

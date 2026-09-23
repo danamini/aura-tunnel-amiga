@@ -75,7 +75,7 @@ LEFTPOSES equ 242
 RIGHTPOSES equ 246
 BIGSCROLLX equ 250
 ROTOARTREADY equ 252
-MUSIC_SCENE equ 254
+MUSIC_LOOPS equ 254
 MUSIC_TICK equ 256
 SPACEREADY equ 258
 SPACEPOSE equ CUBEPOSE       ; both scenes cache one pose in GRAPHBUF
@@ -83,6 +83,9 @@ ROTOBGFRONT equ 260
 ROTOBGBACK equ 264
 ROTOBGPOSE equ 268
 SUNSETREADY equ 270
+MUSIC_SCORE equ 272
+MUSIC_DMA equ 276
+LEVELS equ 280
 
 start:
         move.l a4,d7
@@ -94,6 +97,7 @@ start:
         add.l #program_end-start+4080,d0
         move.l d0,sp
         lea state(pc),a5
+        move.l a3,MUSIC_SCORE(a5)
         move.l a4,BASE(a5)
         lea $dff000,a6
         move.w #$7fff,$9a(a6)
@@ -160,7 +164,7 @@ start:
         bsr init_audio
         move.l COP(a5),$80(a6)
         clr.w $88(a6)
-        move.w #$83ef,$96(a6)   ; master, bitplanes, Copper, blitter, sprites, audio
+        move.w #$83e0,$96(a6)   ; master, bitplanes, Copper, blitter, sprites, audio
         move.w #$c020,$9a(a6)   ; VBL only; sound and time never follow render speed
         move.w #$2000,sr
         move.w #$ffff,LASTSCENE(a5)
@@ -346,18 +350,18 @@ draw_common:
         moveq #16,d1
         bra copy
 
-; Four compact meters inside the HUD's left compartment. VOLUMES contains
-; the values actually written to Paula, including mute and silent notes.
+; Four compact peak meters. LEVELS follows sample output, including one-shot
+; decay; Paula volume settings alone stay high after those samples fall silent.
 draw_levels:
         bsr wait_blit
-        lea VOLUMES(a5),a0
+        lea LEVELS(a5),a0
         move.l BACK(a5),a1
         lea 8601(a1),a1       ; x=8, y=215, safely inside the HUD border
         moveq #3,d6
 .channel:
         move.w (a0)+,d0
-        mulu #10,d0
-        lsr.w #6,d0
+        mulu #11,d0
+        lsr.w #4,d0
         cmp.w #10,d0
         bls.s .height
         moveq #10,d0
@@ -2488,128 +2492,61 @@ buttons:
 .done:  rts
 
 init_audio:
-        move.w #-1,MUSIC_SCENE(a5)
-        clr.w MUSIC_TICK(a5)
-        move.l a4,a0
-        add.l #MUSIC_SAMPLES,a0
-        lea $a0(a6),a1
-        moveq #3,d7
-.init:
-        move.l a0,(a1)
-        move.w #8,4(a1)
-        move.w #428,6(a1)
-        clr.w 8(a1)
-        lea 16(a1),a1
-        dbra d7,.init
-        bsr music_drum_silence
+        movem.l a4-a6,-(sp)
+        move.l MUSIC_SCORE(a5),a0
+        move.l a4,a1
+        add.l #MUSIC_SAMPLES,a1
+        move.l MUSIC_DMA(a5),a2
+        bsr LSP_MusicInit
+        movem.l (sp)+,a4-a6
         rts
 
+; One tick per PAL VBL, independent of scene selection and scene pause.
 music:
-        move.w SCENE(a5),d0
-        cmp.w MUSIC_SCENE(a5),d0
-        beq.s .clock
-        move.w d0,MUSIC_SCENE(a5)
-        clr.w MUSIC_TICK(a5)
-.clock:
-        move.l a4,a0
-        add.l #MUSIC_SCENES,a0
-        moveq #0,d1
-        move.b (a0,d0.w),d1
-        mulu #MUSIC_SECTION_TICKS,d1
-        moveq #0,d0
+        movem.l a4-a6,-(sp)
+        lea $a0(a6),a6
+        bsr LSP_MusicPlayTick
+        movem.l (sp)+,a4-a6
+        move.l MUSIC_SCORE(a5),a0
+        add.l #MUSIC_LEVEL_OFFSET,a0
         move.w MUSIC_TICK(a5),d0
+        add.w d0,d0
+        move.w (a0,d0.w),d2
+        lea LEVELS(a5),a1
+        moveq #3,d7
+.level:
+        rol.w #4,d2
+        move.w d2,d0
+        and.w #15,d0
+        tst.w MUTE(a5)
+        beq.s .level_write
+        moveq #0,d0
+.level_write:
+        move.w d0,(a1)+
+        dbra d7,.level
         addq.w #1,MUSIC_TICK(a5)
         cmp.w #MUSIC_TOTAL_TICKS,MUSIC_TICK(a5)
-        blo.s .clock_ok
+        blo.s .volumes
         clr.w MUSIC_TICK(a5)
-.clock_ok:
-        add.w d1,d0
-        cmp.w #MUSIC_TOTAL_TICKS,d0
-        blo.s .wrapped
-        sub.w #MUSIC_TOTAL_TICKS,d0
-.wrapped:
-        move.w d0,d3
-        add.w d3,d3
-        move.l a4,a2
-        add.l #VOLUME_TRACK,a2
-        move.w (a2,d3.w),d2
-        divu #MUSIC_STEP_TICKS,d0
-        move.w d0,d1
-        swap d0
-        move.w d0,d6          ; phase within the note; trigger drums only at zero
-        lsl.w #4,d1
-        move.l a4,a0
-        add.l #SCORE,a0
-        add.w d1,a0
-        lea $a0(a6),a1
-        lea VOLUMES(a5),a3
+        addq.w #1,MUSIC_LOOPS(a5)
+.volumes:
+        lea LSPVolumes(pc),a0
+        lea VOLUMES(a5),a1
+        lea $a8(a6),a2
         moveq #3,d7
 .voice:
         move.w (a0)+,d0
-        move.w (a0)+,d4
-        rol.w #4,d2
-        move.w d2,d1
-        and.w #15,d1
-        lsl.w #2,d1
-        tst.w d0
-        beq.s .silent
-        move.w d0,6(a1)
         tst.w MUTE(a5)
-        beq.s .volume
-.silent:
-        moveq #0,d1
-.volume:
-        move.w d1,8(a1)
-        move.w d1,(a3)+
-        tst.w d6
-        bne.s .next
-        tst.w d0
-        beq.s .next
-        tst.w d7
-        bne.s .instrument
-        move.w #$0008,$96(a6) ; stop only the percussion DMA channel
-        move.w d4,-(sp)
-        bsr music_dma_wait
-        move.w (sp)+,d4
-.instrument:
-        lsl.w #3,d4
-        move.l a4,a2
-        add.l #MUSIC_INSTRUMENTS,a2
-        add.w d4,a2
-        move.l (a2)+,d5
-        add.l #MUSIC_SAMPLES,d5
-        add.l a4,d5
-        move.l d5,(a1)
-        move.w (a2),4(a1)
-        tst.w d7
-        bne.s .next
-        move.w #$8008,$96(a6)
-        bsr music_dma_wait    ; let Agnus latch the first one-shot buffer
-        bsr music_drum_silence ; subsequent DMA loops contain two zero bytes
-.next:
-        lea 16(a1),a1
+        beq.s .write
+        moveq #0,d0
+.write:
+        move.w d0,(a1)+
+        move.w d0,(a2)
+        lea 16(a2),a2
         dbra d7,.voice
         rts
 
-music_drum_silence:
-        move.l a4,a2
-        add.l #MUSIC_INSTRUMENTS+MUSIC_SILENCE*8,a2
-        move.l (a2),d5
-        add.l #MUSIC_SAMPLES,d5
-        add.l a4,d5
-        move.l d5,$d0(a6)
-        move.w #1,$d4(a6)
-        rts
-
-music_dma_wait:
-        moveq #1,d4
-.line:
-        move.b $6(a6),d5
-.wait:
-        cmp.b $6(a6),d5
-        beq.s .wait
-        dbra d4,.line
-        rts
+        include "vendor/lsplayer/LightSpeedPlayer.asm"
 
 ; Four independent hardware sprites visualize the four actual Paula volumes.
 meters:
@@ -3070,6 +3007,13 @@ build_copper:
         move.w #$fff,(a0)+
         addq.w #2,d0
         dbra d7,.overlay_palette
+        ; LSP disables DMA on retrigger; restart after its required settling time.
+        move.l #$2001fffe,(a0)+
+        move.w #$0096,(a0)+
+        move.l a0,d0
+        addq.l #1,d0
+        move.l d0,MUSIC_DMA(a5)
+        move.w #$8000,(a0)+
         move.l a0,COPRASTER(a5)
         move.l COPINDEX(a5),a2
         move.l ROMODINDEX(a5),a3
@@ -3488,7 +3432,7 @@ default_extra:
 stats_magic: dc.b 'AURA500!'
 state:
         dc.b 'AURA'           ; boot initialization clears these pointer fields
-        dcb.b 268,0
+        dcb.b 284,0
         even
 assets:
         incbin "build/assets.bin"

@@ -1,4 +1,4 @@
-"""Bake DMA assets, preserving a pinned Spectrum score, lettering and poses.
+"""Bake DMA assets, preserving pinned lettering, poses and the credited MOD soundtrack.
 
 No screen recording: the 68000 renders scenes, Copper colours the raster,
 blitter moves planar objects and Paula plays the score on four DMA channels.
@@ -512,20 +512,14 @@ for kind in range(3):
     graphs.append(bits(centred))
 put('GRAPHS',b''.join(graphs))
 
-# Same four-section score, arranged for Paula's four independent sample loops.
-# Import in an isolated output folder: reference generator writes only there.
-scoreout=OUT/'score-reference';scoreout.mkdir(exist_ok=True)
-oldargv=sys.argv;sys.argv=['gen_ay128.py',str(scoreout)]
-spec=importlib.util.spec_from_file_location('spectrum_score',REF/'tools/gen_ay128.py')
-score=importlib.util.module_from_spec(spec);spec.loader.exec_module(score);sys.argv=oldargv
-from music import bake, preview, STEP_TICKS, SECTION_STEPS
-music_assets, arrangement = bake(score)
+# The sample bank lives in CHIP RAM; the boot loader reads the score into slow RAM.
+from music import bake, preview
+music_assets, arrangement = bake()
 for name, data in music_assets.items(): put(name, data)
-symbols += [f'MUSIC_STEP_TICKS equ {STEP_TICKS}',
-            f'MUSIC_SECTION_TICKS equ {SECTION_STEPS*STEP_TICKS}',
-            f'MUSIC_TOTAL_TICKS equ {len(score.MELODY)*STEP_TICKS}',
-            f'MUSIC_SILENCE equ {len(arrangement[0])-1}']
-preview(OUT/'music-preview.wav', arrangement)
+symbols.append(f'MUSIC_TOTAL_TICKS equ {arrangement.ticks}')
+levels = preview(OUT/'music-preview.wav', arrangement)
+symbols.append(f'MUSIC_LEVEL_OFFSET equ {len(arrangement.score)}')
+(OUT/'music-score.bin').write_bytes(arrangement.score + levels)
 
 # 16 ordered dissolve thresholds, an eight-row mask repeated vertically.
 bayer=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]]
