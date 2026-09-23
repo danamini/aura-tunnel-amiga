@@ -1,6 +1,6 @@
 ; AURA TUNNEL / A500 OCS. Position independent, disk-loaded into CHIP RAM.
 ; Two planar buffers, a frozen transition frame, Copper raster palettes,
-; blitter copies and masks, four Paula DMA loops and four hardware meters.
+; blitter copies and masks, four Paula DMA loops and four HUD meters.
         include "build/assets.i"
 PLANE equ 10240
 SCREEN equ 20480
@@ -60,12 +60,29 @@ TEXTCOP equ 188
 TEXTEND equ 192
 TEXTMODE equ 196
 TRAIN_CITY_Y equ 32
+TRAIN_ROOF_Y equ 144
+TRAIN_TRAVEL_SHIFT equ 2
+TRAIN_LEFT_ANCHOR equ 305
+TRAIN_RIGHT_ANCHOR equ 375
 TRAINART equ 200
 TRAINREADY equ 202
 HIFONTREADY equ 204
 DANCEREADY equ 206
 BIGSPINPHASE equ 208
 BIGSPINANGLES equ 212
+CUBEPOSE equ 240
+LEFTPOSES equ 242
+RIGHTPOSES equ 246
+BIGSCROLLX equ 250
+ROTOARTREADY equ 252
+MUSIC_SCENE equ 254
+MUSIC_TICK equ 256
+SPACEREADY equ 258
+SPACEPOSE equ CUBEPOSE       ; both scenes cache one pose in GRAPHBUF
+ROTOBGFRONT equ 260
+ROTOBGBACK equ 264
+ROTOBGPOSE equ 268
+SUNSETREADY equ 270
 
 start:
         move.l a4,d7
@@ -135,7 +152,9 @@ start:
         add.l #3200,d0
         move.l d0,ROBACK(a5)
         bsr build_copper
+        move.w #$ff00,$34(a6) ; pull up mouse buttons after taking over from ROM
         clr.w MUTE(a5)
+        move.w #3,BUTTONS(a5) ; arm edges only after both inputs report released
         move.w #1,BODIES(a5)
         move.w #1,TRAINART(a5)
         bsr init_audio
@@ -170,6 +189,7 @@ main:
         move.w (a0,d0.w),d0
         jsr (a0,d0.w)
         bsr draw_fps
+        bsr draw_levels
         bsr transition
         bsr wait_blit
         move.l TICK(a5),d0
@@ -191,7 +211,6 @@ main:
         move.l PERF(a5),a0
         addq.l #1,(a0,d0.w)
 .unmeasured:
-        bsr meters
         bra main
 
 dispatch:
@@ -258,7 +277,30 @@ clear_back:
         move.l #$01000000,$40(a6)
         clr.w $66(a6)
         move.l BACK(a5),$54(a6)
-        move.w #$8014,$58(a6)
+        cmp.w #1,SCENE(a5)
+        bne.s .full_clear
+        cmp.w #40,FRAME(a5)
+        blo.s .full_clear
+        ; Header, footer and HUD are opaque copies. After the transition,
+        ; only the tunnel viewport needs clearing in either plane.
+        move.l BACK(a5),d0
+        add.l #24*40,d0
+        move.l d0,$54(a6)
+        move.w #176*64+20,$58(a6)
+        bsr wait_blit
+        add.l #PLANE,d0
+        move.l d0,$54(a6)
+        move.w #176*64+20,$58(a6)
+        rts
+.full_clear:
+        move.w #$8014,d0
+        cmp.w #2,SCENE(a5)
+        bne.s .size
+        cmp.w #32,FRAME(a5)
+        blo.s .size
+        move.w #$4014,d0
+.size:
+        move.w d0,$58(a6)
         rts
 
 draw_common:
@@ -303,6 +345,37 @@ draw_common:
         moveq #20,d0
         moveq #16,d1
         bra copy
+
+; Four compact meters inside the HUD's left compartment. VOLUMES contains
+; the values actually written to Paula, including mute and silent notes.
+draw_levels:
+        bsr wait_blit
+        lea VOLUMES(a5),a0
+        move.l BACK(a5),a1
+        lea 8601(a1),a1       ; x=8, y=215, safely inside the HUD border
+        moveq #3,d6
+.channel:
+        move.w (a0)+,d0
+        mulu #10,d0
+        lsr.w #6,d0
+        cmp.w #10,d0
+        bls.s .height
+        moveq #10,d0
+.height:
+        move.l a1,a2
+        moveq #9,d7
+.row:
+        moveq #0,d1
+        cmp.w d0,d7
+        bhs.s .empty
+        move.w #$7e,d1
+.empty:
+        move.b d1,(a2)
+        lea 40(a2),a2
+        dbra d7,.row
+        addq.l #1,a1
+        dbra d6,.channel
+        rts
 
 draw_fps:
         bsr wait_blit
@@ -354,8 +427,18 @@ decimal_digit:
         rts
 
 briefing:
-        move.l a4,a2
-        add.l #BRIEF,a2
+        tst.w CUBEPOSE(a5)
+        beq.s .ready
+        move.l a4,a0
+        add.l #BRIEF_PACKED,a0
+        move.l a0,a2
+        add.l #BRIEF_PACKED_SIZE,a2
+        move.l HIWORK(a5),a1
+        move.l #5760,d0
+        bsr roto_decode
+        clr.w CUBEPOSE(a5)
+.ready:
+        move.l HIWORK(a5),a2
         move.l BACK(a5),a3
         add.l #1600,a3
         moveq #0,d6
@@ -388,7 +471,8 @@ briefing:
 
 tunnel:
         move.w FRAME(a5),d0
-        and.w #127,d0
+        lsr.w #TUNNEL_TICK_SHIFT,d0
+        and.w #TUNNEL_PHASES-1,d0
         lsl.w #2,d0
         move.l a4,a0
         add.l #TUNNEL_INDEX,a0
@@ -402,18 +486,18 @@ tunnel:
         move.w #40,$60(a6)
         move.w #40,$66(a6)
         move.l a2,-(sp)
-        moveq #9,d7
+        moveq #TUNNEL_RINGS-1,d7
 .ring:
         ; Filled checker boundaries already describe the middle rings.
         ; Keep only distant outlines; near walls pass beyond the viewport.
-        cmp.w #7,d7
-        bhs.s .outline
-        lea 20(a2),a2
+        cmp.w #TUNNEL_RINGS-2,d7
+        beq.s .outline
+        lea TUNNEL_RING_BYTES(a2),a2
         bra .ring_next
 .outline:
         move.w (a2)+,-(sp)
         move.w #$ffff,d5
-        moveq #7,d6
+        moveq #TUNNEL_SECTORS-1,d6
 .edge:
         moveq #0,d4
         cmp.w #2,(sp)
@@ -448,6 +532,32 @@ tunnel:
 .ring_next:
         dbra d7,.ring
         move.l (sp)+,a2
+        ; Four illuminated rails follow the bend through the middle depths.
+        ; Two longer segments per rail keep line setup bounded.
+        lea TUNNEL_RING_BYTES*2+2(a2),a2
+        moveq #3,d7
+.rail:
+        moveq #1,d6
+        move.l a2,-(sp)
+.segment:
+        moveq #0,d0
+        moveq #0,d1
+        moveq #0,d2
+        moveq #0,d3
+        move.b (a2),d0
+        add.w d0,d0
+        move.b 1(a2),d1
+        move.b TUNNEL_RING_BYTES*2(a2),d2
+        add.w d2,d2
+        move.b TUNNEL_RING_BYTES*2+1(a2),d3
+        moveq #0,d4
+        move.w #$ffff,d5
+        bsr blitter_line
+        lea TUNNEL_RING_BYTES*2(a2),a2
+        dbra d6,.segment
+        move.l (sp)+,a2
+        addq.l #6,a2
+        dbra d7,.rail
         rts
 
         include "src/tunnel_fill.asm"
@@ -567,7 +677,7 @@ prepare_roto:
         add.l (a3,d4.w),a0
         add.l 4(a3,d4.w),a2
         move.l ROBACK(a5),a1
-        move.w #3200,d0
+        move.l #3200,d0       ; caller may leave a full CHIP pointer in d0
         bsr roto_decode
         move.w (sp)+,d4
         tst.w d0
@@ -579,8 +689,54 @@ prepare_roto:
         move.w #1,ROVALID(a5)
 .done:  rts
         include "src/roto_decode.asm"
+        include "src/roto_background.asm"
 
 roto:
+        cmp.w #32,FRAME(a5)
+        blo .background_ready
+        tst.w ROTOARTREADY(a5)
+        bne.s .background_pose
+        bsr wait_blit
+        move.l #$01000000,$40(a6)
+        clr.w $66(a6)
+        move.l OLD(a5),d0
+        move.l d0,$54(a6)
+        move.l d0,ROTOBGFRONT(a5)
+        add.l #PLANE,d0
+        move.l d0,ROTOBGBACK(a5)
+        move.w #$8014,$58(a6)
+        move.w #$ffff,ROTOBGPOSE(a5)
+        bsr wait_blit
+        move.w #1,ROTOARTREADY(a5)
+.background_pose:
+        move.w FRAME(a5),d4
+        lsr.w #ROTO_BG_TICK_SHIFT,d4
+        and.w #ROTO_BG_PHASES-1,d4
+        cmp.w ROTOBGPOSE(a5),d4
+        beq.s .background_ready
+        move.w d4,-(sp)
+        and.w #ROTO_BG_STEPS-1,d4
+        lsl.w #2,d4
+        move.l a4,a3
+        add.l #ROTO_BG_INDEX,a3
+        move.l a4,a0
+        add.l #ROTO_BG_PACKED,a0
+        move.l a0,a2
+        add.l (a3,d4.w),a0
+        add.l 4(a3,d4.w),a2
+        move.l ROTOBGBACK(a5),a1
+        add.l #ROTO_BG_OFFSET,a1
+        move.l #ROTO_BG_BYTES,d0
+        move.w (sp),d4
+        bsr roto_background_decode
+        move.w (sp)+,d4
+        tst.w d0
+        bne.s .background_ready
+        move.l ROTOBGFRONT(a5),d0
+        move.l ROTOBGBACK(a5),ROTOBGFRONT(a5)
+        move.l d0,ROTOBGBACK(a5)
+        move.w d4,ROTOBGPOSE(a5)
+.background_ready:
         bsr prepare_roto
         cmp.w #32,FRAME(a5)
         bhs roto_dots
@@ -658,6 +814,16 @@ prepare_hi_font:
         move.l OLD(a5),a1
         move.l #HI_BITMAP_SIZE,d0
         bsr roto_decode
+        ; Reuse the unused tail of the wave-mask buffer for stretch programs.
+        ; The blitter's column masks occupy at most the first 84 bytes.
+        move.l a4,a0
+        add.l #HI_STRETCH_PACKED,a0
+        move.l a0,a2
+        add.l #HI_STRETCH_PACKED_SIZE,a2
+        move.l MASKBUF(a5),a1
+        add.l #HI_STRETCH_CACHE,a1
+        move.l #HI_STRETCH_SIZE,d0
+        bsr roto_decode
         move.w #1,HIFONTREADY(a5)
         move.w #$ffff,BIGSPINPHASE(a5)
         lea BIGSPINANGLES(a5),a0
@@ -679,7 +845,7 @@ hires_columns:
         move.w FRAME(a5),d7
         lsl.w #4,d7
         neg.w d7
-        and.w #2047,d7
+        and.w #1023,d7
         moveq #0,d6
         move.l OLD(a5),a2
         move.l a4,a3
@@ -700,7 +866,7 @@ hires_columns:
         add.w d4,d6
         lsl.w #1,d4
         add.w d4,d7
-        and.w #2047,d7
+        and.w #1023,d7
         cmp.w #640,d6
         blo.s .group
         rts
@@ -794,8 +960,8 @@ stretch_hires:
         add.l #HI_STRETCH_INDEX,a0
         moveq #0,d1
         move.w (a0,d0.w),d1
-        move.l a4,a2
-        add.l #HI_STRETCH,a2
+        move.l MASKBUF(a5),a2
+        add.l #HI_STRETCH_CACHE,a2
         add.l d1,a2
 .run:
         move.w (a2)+,d0
@@ -915,52 +1081,157 @@ bob2:
         rts
 
 cubes:
-        move.w FRAME(a5),d0
-        lsr.w #1,d0
-        and.w #31,d0
-        mulu #1152,d0
+        cmp.w #$ffff,CUBEPOSE(a5)
+        bne.s .animate
+        bsr wait_blit
+        moveq #0,d7
+.preload:
+        move.w d7,d4
+        lsl.w #2,d4
+        move.l a4,a3
+        add.l #SOLID_INDEX,a3
+        move.l a4,a0
+        add.l #SOLID_PACKED,a0
+        move.l a0,a2
+        add.l (a3,d4.w),a0
+        add.l 4(a3,d4.w),a2
+        bsr solid_cache_address
+        move.l a4,a3
+        add.l #SOLID_LAYOUT,a3
+        move.w d7,d0
+        lsl.w #3,d0
+        moveq #0,d1
+        move.w 6(a3,d0.w),d1
+        mulu #SOLID_FRAMES*2,d1
+        move.l d1,d0
+        bsr roto_decode
+        addq.w #1,d7
+        cmp.w #SOLID_COUNT,d7
+        blo.s .preload
+.animate:
+        bsr stars
+        move.w FRAME(a5),d4
+        lsr.w #2,d4
+        and.w #SOLID_FRAMES-1,d4
+        cmp.w CUBEPOSE(a5),d4
+        beq .cached
+        move.w d4,CUBEPOSE(a5)
+        bsr wait_blit
+        moveq #0,d7
+.copy_shape:
+        bsr solid_cache_address
+        move.l a1,a0
         move.l a4,a2
-        add.l #CUBES,a2
-        add.l d0,a2
-        move.w #136,d4
-        moveq #80,d5
-        moveq #4,d6
-        moveq #48,d7
+        add.l #SOLID_LAYOUT,a2
+        move.w d7,d0
+        lsl.w #3,d0
+        add.w d0,a2
+        moveq #0,d0
+        move.w 6(a2),d0
+        move.w d0,d1
+        mulu d4,d1
+        add.l d1,d1
+        add.l d1,a0
+        move.l GRAPHBUF(a5),a1
+        add.w (a2),a1
+        move.w d0,d1
+        lsr.w #1,d1
+        subq.w #1,d1
+.copy_planes:
+        move.l (a0)+,(a1)+
+        dbra d1,.copy_planes
+        move.l GRAPHBUF(a5),a0
+        add.w (a2),a0
+        move.l a0,a2
+        add.w d0,a2
+        lsr.w #2,d0
+        subq.w #1,d0
+.mask:
+        move.l (a0)+,d1
+        or.l (a2)+,d1
+        move.l d1,(a1)+
+        dbra d0,.mask
+        addq.w #1,d7
+        cmp.w #SOLID_COUNT,d7
+        blo.s .copy_shape
+.cached:
+        move.l GRAPHBUF(a5),a2
+        move.w #128,d4
+        move.w FRAME(a5),d0
+        and.w #255,d0
+        add.w d0,d0
+        move.l a4,a0
+        add.l #SINE,a0
+        move.w (a0,d0.w),d5
+        asr.w #1,d5
+        add.w #80,d5
+        moveq #5,d6
+        moveq #64,d7
         bsr bob2
         moveq #0,d7
 .sat:
         movem.l d7,-(sp)
+        move.w d7,d0
+        and.w #3,d0
+        addq.w #1,d0
+        lsl.w #3,d0
+        move.l a4,a1
+        add.l #SOLID_LAYOUT,a1
+        add.w d0,a1
         move.w FRAME(a5),d0
-        add.w d7,d0
+        lsr.w #1,d0
+        move.w d7,d1
+        mulu #43,d1
+        add.w d1,d0
         and.w #255,d0
         add.w d0,d0
         move.l a4,a0
         add.l #SINE,a0
         move.w (a0,d0.w),d4
-        lsl.w #2,d4
-        add.w #152,d4
+        muls #7,d4
+        add.w #160,d4
         add.w #128,d0
         and.w #510,d0
         move.w (a0,d0.w),d5
-        lsl.w #2,d5
-        add.w #104,d5
-        move.w FRAME(a5),d0
+        muls #3,d5
+        add.w #114,d5
+        move.w 2(a1),d0
         lsr.w #1,d0
-        move.w d7,d1
-        lsr.w #3,d1
-        add.w d1,d0
-        and.w #31,d0
-        mulu #192,d0
-        move.l a4,a2
-        add.l #MINICUBES,a2
-        add.l d0,a2
-        moveq #2,d6
-        moveq #16,d7
+        sub.w d0,d4
+        sub.w d0,d5
+        move.l GRAPHBUF(a5),a2
+        add.w (a1),a2
+        move.w 4(a1),d6
+        move.w 2(a1),d7
         bsr bob2
         movem.l (sp)+,d7
-        add.w #32,d7
-        cmp.w #256,d7
-        blo.s .sat
+        addq.w #1,d7
+        cmp.w #6,d7
+        blo .sat
+        rts
+
+; Five compact two-plane pose banks borrow buffers unused by this scene.
+; d7 family -> a1 bank; preserves the decoder's source and bound pointers.
+solid_cache_address:
+        tst.w d7
+        bne.s .box
+        move.l OLD(a5),a1           ; 20,480 bytes, central cube
+        rts
+.box:   cmp.w #1,d7
+        bne.s .octahedron
+        move.l MASKBUF(a5),a1       ; 6,144 bytes, rectangular box
+        rts
+.octahedron:
+        move.l BASE(a5),a1
+        cmp.w #3,d7
+        beq.s .tetrahedron
+        add.l #hires_a-start,a1     ; 10,240 bytes, diamond
+        cmp.w #4,d7
+        bne.s .done
+        add.l #10240,a1            ; remaining hires area: 6,144-byte prism
+.done:  rts
+.tetrahedron:
+        add.l #roto_a-start,a1      ; 6,144 bytes in the 6,400-byte roto pair
         rts
 
 stars:
@@ -984,10 +1255,17 @@ stars:
         bne.s .space_occlusion
         tst.w TRAINART(a5)
         beq.s .old_skyline
-        cmp.w #TRAIN_CITY_Y,d1
-        bhs.s .hidden
+        move.w d7,d1
+        and.w #7,d1
+        add.w #TRAIN_CITY_Y-8,d1
+        bra.s .skyline_check
 .old_skyline:
         cmp.w #88,d1          ; All background stars stay above the skyline.
+        bhs.s .hidden
+.skyline_check:
+        tst.w TRAINART(a5)
+        beq.s .space_occlusion
+        cmp.w #TRAIN_CITY_Y,d1
         bhs.s .hidden
 .space_occlusion:
         cmp.w #7,SCENE(a5)
@@ -1016,7 +1294,20 @@ stars:
         rts
 
 space:
+        tst.w SPACEREADY(a5)
+        bne.s .background_ready
+        bsr wait_blit
+        move.l a4,a0
+        add.l #SPACE_BACKGROUND_PACKED,a0
+        move.l a0,a2
+        add.l #SPACE_BACKGROUND_PACKED_SIZE,a2
+        move.l OLD(a5),a1
+        move.l #SCREEN,d0
+        bsr roto_decode
+        move.w #1,SPACEREADY(a5)
+.background_ready:
         bsr stars
+        bsr space_reactor
         eor.w #696,SPACEBANK(a5)
         move.l RBUFPTR(a5),a1
         add.w SPACEBANK(a5),a1
@@ -1059,6 +1350,43 @@ space:
         blo.s .flyer
         rts
 
+space_reactor:
+        move.w FRAME(a5),d0
+        lsr.w #3,d0
+        and.w #REACTOR_FRAMES-1,d0
+        cmp.w SPACEPOSE(a5),d0
+        beq.s .cached
+        move.w d0,SPACEPOSE(a5)
+        bsr wait_blit
+        lsl.w #2,d0
+        move.l a4,a3
+        add.l #REACTOR_INDEX,a3
+        move.l a4,a0
+        add.l #REACTOR_PACKED,a0
+        move.l a0,a2
+        add.l (a3,d0.w),a0
+        add.l 4(a3,d0.w),a2
+        move.l GRAPHBUF(a5),a1
+        move.w #REACTOR_POSE_BYTES,d0
+        bsr roto_decode
+        ; Derive the silhouette locally instead of storing sixteen mask planes.
+        move.l GRAPHBUF(a5),a0
+        lea REACTOR_PLANE_BYTES(a0),a2
+        lea REACTOR_PLANE_BYTES(a2),a1
+        move.w #REACTOR_PLANE_BYTES/4-1,d0
+.mask:
+        move.l (a0)+,d1
+        or.l (a2)+,d1
+        move.l d1,(a1)+
+        dbra d0,.mask
+.cached:
+        move.l GRAPHBUF(a5),a2
+        move.w #REACTOR_X,d4
+        move.w #REACTOR_Y,d5
+        moveq #REACTOR_WORDS,d6
+        moveq #REACTOR_HEIGHT,d7
+        bra bob2
+
 hires_star:
         cmp.w #128,d1
         blo.s .out
@@ -1100,6 +1428,7 @@ point:
 .out:   rts
 
 runner:
+        bsr prepare_sunset
         move.l a4,a2
         add.l #RUN_RIDGE,a2
         move.w FRAME(a5),d4
@@ -1154,6 +1483,28 @@ runner:
         moveq #0,d2
         moveq #0,d3
         bra copy
+
+prepare_sunset:
+        tst.w SUNSETREADY(a5)
+        bne.s .done
+        bsr wait_blit
+        move.l a4,a0
+        add.l #SUNSET_LOW,a0
+        move.l a0,a2
+        add.l #SUNSET_LOW_SIZE,a2
+        move.l OLD(a5),a1
+        move.l #SCREEN,d0
+        bsr roto_decode
+        move.l a4,a0
+        add.l #SUNSET_HIGH,a0
+        move.l a0,a2
+        add.l #SUNSET_HIGH_SIZE,a2
+        move.l MASKBUF(a5),a1
+        move.w #PLANE,d0
+        bsr roto_decode
+        move.w #1,SUNSETREADY(a5)
+.done:  rts
+
 cached_figure:
         tst.w BODIES(a5)
         bne body_figure
@@ -1471,20 +1822,54 @@ train:
         move.l BASE(a5),a1
         add.l #roto_a-start,a1
         move.l BACK(a5),d1
+        lea LEFTPOSES(a5),a3
         cmp.l FRONT(a5),d1
         blo.s .left_bank
         lea FIGHTER_POSE(a1),a1
+        addq.l #2,a3
 .left_bank:
         move.l a1,PENDING_L(a5)
+        cmp.w (a3),d0
+        beq.s .left_ready
+        move.w d0,(a3)
         bsr decode_fighter
+.left_ready:
         moveq #1,d0
         bsr fighter_pose
+        lea RIGHTPOSES(a5),a3
+        move.l RBUFPTR(a5),a1
+        move.l BACK(a5),d1
+        cmp.l FRONT(a5),d1
+        blo.s .right_bank
+        lea FIGHTER_POSE(a1),a1
+        addq.l #2,a3
+.right_bank:
+        move.l a1,PENDING_R(a5)
+        cmp.w (a3),d0
+        beq.s .right_ready
+        move.w d0,(a3)
+        tst.w TRAINART(a5)
+        beq.s .mirror_original
+        sub.w #JONES_FIRST,d0
+        lsl.w #2,d0
+        move.l a4,a3
+        add.l #RIGHT_FIGHTER_INDEX,a3
+        move.l a4,a0
+        add.l #RIGHT_FIGHTER_PACKED,a0
+        move.l a0,a2
+        add.l (a3,d0.w),a0
+        add.l 4(a3,d0.w),a2
+        move.w #FIGHTER_POSE,d0
+        bsr roto_decode
+        bra.s .right_ready
+.mirror_original:
         move.l BASE(a5),a1
         add.l #roto_b-start,a1
         bsr decode_fighter
         move.l BASE(a5),a2
         add.l #roto_b-start,a2
         bsr mirror_fighter
+.right_ready:
         bsr ground
         bsr wait_blit
         move.l BACK(a5),a1
@@ -1495,16 +1880,77 @@ train:
         lea 6400(a1),a1
         tst.w TRAINART(a5)
         beq.s .deck_y
-        sub.l #960,a1
+        sub.l #(160-TRAIN_ROOF_Y)*40,a1
         moveq #0,d0
 .deck_y:
         add.w d0,a1
+        bsr train_vibration
+        muls #40,d0
+        add.l d0,a1
+        bsr train_travel
+        and.w #3,d0
+        move.w #$9999,d2
+        rol.w d0,d2
         moveq #19,d7
 .deck:
         move.w #$ffff,(a1)
-        move.w #$9999,160(a1)
+        move.w d2,160(a1)
         addq.l #2,a1
         dbra d7,.deck
+        bra train_leaves
+
+; Fast near-field leaves, with independent speeds and tumbling silhouettes.
+; Each stamp fits in two destination words; offscreen phases are clipped.
+train_leaves:
+        bsr wait_blit
+        moveq #15,d7
+.leaf:
+        move.w d7,d4
+        mulu #37,d4
+        move.w d7,d0
+        and.w #3,d0
+        addq.w #5,d0
+        mulu FRAME(a5),d0
+        sub.w d0,d4
+        and.w #511,d4
+        cmp.w #304,d4
+        bhs.s .next
+        move.w d7,d5
+        mulu #29,d5
+        move.w FRAME(a5),d0
+        add.w d7,d0
+        and.w #255,d0
+        add.w d0,d0
+        move.l a4,a0
+        add.l #SINE,a0
+        add.w (a0,d0.w),d5
+        and.w #127,d5
+        add.w #48,d5
+        mulu #40,d5
+        move.w d4,d3
+        and.w #15,d3
+        lsr.w #4,d4
+        add.w d4,d4
+        add.w d4,d5
+        move.l BACK(a5),a1
+        add.l #PLANE,a1
+        add.w d5,a1
+        move.l #$60000000,d0
+        move.l #$f0000000,d1
+        move.w FRAME(a5),d2
+        add.w d7,d2
+        btst #2,d2
+        beq.s .wide
+        move.l #$40000000,d0
+        move.l #$60000000,d1
+.wide:
+        lsr.l d3,d0
+        lsr.l d3,d1
+        or.l d0,(a1)
+        or.l d1,40(a1)
+        or.l d0,80(a1)
+.next:
+        dbra d7,.leaf
         rts
 
 fighter_pose:
@@ -1598,14 +2044,21 @@ train_parallax:
         lsr.w #2,d4
         bra.s .original
 .car:
-        ; The carriage is the near layer. Restore one source pixel per VBL
-        ; after the shared half-speed setup; the city remains deliberately slow.
-        add.w d4,d4
+        ; Carriage and fighter roots use exactly the same displacement.
+        bsr train_travel
+        move.w d0,d4
         move.l BASE(a5),a2
         add.l #hires_a-start,a2
-        move.w #144,d5
+        move.w #TRAIN_ROOF_Y,d5
         moveq #52,d6
 .original:
+        cmp.w #9,SCENE(a5)
+        bne.s .steady
+        cmp.w #1,d7
+        bne.s .steady
+        bsr train_vibration
+        add.w d0,d5
+.steady:
         movem.l d4-d7/a2-a3,-(sp)
         bsr parallax_plane
         movem.l (sp),d4-d7/a2-a3
@@ -1626,6 +2079,21 @@ train_parallax:
         cmp.w #3,d7
         blo .layer
  .done: rts
+
+train_travel:
+        move.w FRAME(a5),d0
+        lsr.w #TRAIN_TRAVEL_SHIFT,d0
+        rts
+
+train_vibration:
+        move.w FRAME(a5),d0
+        lsr.w #2,d0
+        and.w #15,d0
+        add.w d0,d0
+        move.w train_shake(pc,d0.w),d0
+        rts
+
+train_shake: dc.w 0,-1,-3,-2,0,2,3,1,0,-2,-1,1,3,2,0,-1
 
 parallax_plane:
         bsr wait_blit
@@ -1687,6 +2155,24 @@ parallax_layers:
         dc.w 170,16
 
 fighter_sprites:
+        ; d6 pose index. Anchor the last opaque foot row just above the roof.
+        tst.w TRAINART(a5)
+        beq.s .original_base
+        add.w d6,d6
+        move.l a4,a1
+        add.l #FIGHTER_FEET,a1
+        move.w (a1,d6.w),d6
+        neg.w d6
+        add.w #TRAIN_ROOF_Y+44,d6
+        bra.s .base_ready
+.original_base:
+        move.w FRAME(a5),d6
+        lsr.w #2,d6
+        and.w #1,d6
+        add.w #148,d6
+.base_ready:
+        bsr train_vibration
+        add.w d0,d6
         moveq #2,d7
 .segment:
         move.w d4,d2
@@ -1696,14 +2182,7 @@ fighter_sprites:
         and.w #1,d2
         move.b d2,3(a2)
         add.w #16,d4
-        move.w FRAME(a5),d1
-        lsr.w #2,d1
-        and.w #1,d1
-        add.w #148,d1
-        tst.w TRAINART(a5)
-        beq.s .fighter_y
-        moveq #124,d1
-.fighter_y:
+        move.w d6,d1
         move.b d1,(a2)
         add.w #FIGHTER_HEIGHT,d1
         move.b d1,2(a2)
@@ -1819,9 +2298,15 @@ next_scene:
         clr.w FRAME(a5)
         clr.w TRANS(a5)
 scene_init:
+        clr.w ROTOARTREADY(a5)
+        move.w #$ffff,CUBEPOSE(a5)
+        move.l #-1,LEFTPOSES(a5)
+        move.l #-1,RIGHTPOSES(a5)
         clr.w DANCEREADY(a5)
         clr.w ROVALID(a5)       ; fighter poses borrow roto buffers between scenes
         clr.w HIFONTREADY(a5)
+        clr.w SPACEREADY(a5)
+        clr.w SUNSETREADY(a5)
         clr.w TRAINREADY(a5)
         clr.w GRAPHTICKS(a5)
         clr.w GX(a5)
@@ -1841,8 +2326,14 @@ scene_init:
 ; Incoming scene is composed normally, then masked against a frozen outgoing
 ; frame. A is mask, B incoming, C frozen, D back: (A&B)|(~A&C) = $CA.
 transition:
+        cmp.w #5,SCENE(a5)
+        beq .done             ; OLD and MASKBUF hold cached solid poses
         cmp.w #4,SCENE(a5)
         beq .done
+        cmp.w #7,SCENE(a5)
+        beq .done             ; OLD holds the decoded galaxy in this scene
+        cmp.w #6,SCENE(a5)
+        beq .done             ; OLD and MASKBUF hold the decoded sunset
         cmp.w #9,SCENE(a5)
         bne.s .normal_transition
         tst.w TRAINART(a5)
@@ -1938,6 +2429,11 @@ keyboard:
         eor.w #1,PAUSED(a5)
         rts
 .select:
+        cmp.b #$37,d0       ; M: keyboard alternative to right mouse
+        bne.s .scene_key
+        eor.w #1,MUTE(a5)
+        rts
+.scene_key:
         cmp.b #1,d0
         blo.s .runner_key
         cmp.b #10,d0
@@ -1992,45 +2488,56 @@ buttons:
 .done:  rts
 
 init_audio:
+        move.w #-1,MUSIC_SCENE(a5)
+        clr.w MUSIC_TICK(a5)
         move.l a4,a0
-        add.l #LEAD_SAMPLE,a0
-        move.l a0,$a0(a6)
-        move.w #32,$a4(a6)
-        move.l a4,a0
-        add.l #BASS_SAMPLE,a0
-        move.l a0,$b0(a6)
-        move.w #32,$b4(a6)
-        move.l a4,a0
-        add.l #PAD_SAMPLE,a0
-        move.l a0,$c0(a6)
-        move.w #32,$c4(a6)
-        move.l a4,a0
-        add.l #DRUM_SAMPLE,a0
-        move.l a0,$d0(a6)
-        move.w #128,$d4(a6)
-        move.w #428,$a6(a6)
-        move.w #856,$b6(a6)
-        move.w #428,$c6(a6)
-        move.w #150,$d6(a6)
-        clr.w $a8(a6)
-        clr.w $b8(a6)
-        clr.w $c8(a6)
-        clr.w $d8(a6)
+        add.l #MUSIC_SAMPLES,a0
+        lea $a0(a6),a1
+        moveq #3,d7
+.init:
+        move.l a0,(a1)
+        move.w #8,4(a1)
+        move.w #428,6(a1)
+        clr.w 8(a1)
+        lea 16(a1),a1
+        dbra d7,.init
+        bsr music_drum_silence
         rts
 
 music:
-        move.l TICK(a5),d0
-        divu #2560,d0
-        swap d0
-        and.l #$ffff,d0
-        divu #10,d0
+        move.w SCENE(a5),d0
+        cmp.w MUSIC_SCENE(a5),d0
+        beq.s .clock
+        move.w d0,MUSIC_SCENE(a5)
+        clr.w MUSIC_TICK(a5)
+.clock:
+        move.l a4,a0
+        add.l #MUSIC_SCENES,a0
+        moveq #0,d1
+        move.b (a0,d0.w),d1
+        mulu #MUSIC_SECTION_TICKS,d1
+        moveq #0,d0
+        move.w MUSIC_TICK(a5),d0
+        addq.w #1,MUSIC_TICK(a5)
+        cmp.w #MUSIC_TOTAL_TICKS,MUSIC_TICK(a5)
+        blo.s .clock_ok
+        clr.w MUSIC_TICK(a5)
+.clock_ok:
+        add.w d1,d0
+        cmp.w #MUSIC_TOTAL_TICKS,d0
+        blo.s .wrapped
+        sub.w #MUSIC_TOTAL_TICKS,d0
+.wrapped:
+        move.w d0,d3
+        add.w d3,d3
+        move.l a4,a2
+        add.l #VOLUME_TRACK,a2
+        move.w (a2,d3.w),d2
+        divu #MUSIC_STEP_TICKS,d0
         move.w d0,d1
         swap d0
-        add.w d0,d0
-        move.l a4,a2
-        add.l #VOLUME_ENV,a2
-        add.w d0,a2
-        lsl.w #3,d1
+        move.w d0,d6          ; phase within the note; trigger drums only at zero
+        lsl.w #4,d1
         move.l a4,a0
         add.l #SCORE,a0
         add.w d1,a0
@@ -2039,7 +2546,11 @@ music:
         moveq #3,d7
 .voice:
         move.w (a0)+,d0
-        move.w (a2),d1
+        move.w (a0)+,d4
+        rol.w #4,d2
+        move.w d2,d1
+        and.w #15,d1
+        lsl.w #2,d1
         tst.w d0
         beq.s .silent
         move.w d0,6(a1)
@@ -2050,9 +2561,54 @@ music:
 .volume:
         move.w d1,8(a1)
         move.w d1,(a3)+
+        tst.w d6
+        bne.s .next
+        tst.w d0
+        beq.s .next
+        tst.w d7
+        bne.s .instrument
+        move.w #$0008,$96(a6) ; stop only the percussion DMA channel
+        move.w d4,-(sp)
+        bsr music_dma_wait
+        move.w (sp)+,d4
+.instrument:
+        lsl.w #3,d4
+        move.l a4,a2
+        add.l #MUSIC_INSTRUMENTS,a2
+        add.w d4,a2
+        move.l (a2)+,d5
+        add.l #MUSIC_SAMPLES,d5
+        add.l a4,d5
+        move.l d5,(a1)
+        move.w (a2),4(a1)
+        tst.w d7
+        bne.s .next
+        move.w #$8008,$96(a6)
+        bsr music_dma_wait    ; let Agnus latch the first one-shot buffer
+        bsr music_drum_silence ; subsequent DMA loops contain two zero bytes
+.next:
         lea 16(a1),a1
-        lea 20(a2),a2
         dbra d7,.voice
+        rts
+
+music_drum_silence:
+        move.l a4,a2
+        add.l #MUSIC_INSTRUMENTS+MUSIC_SILENCE*8,a2
+        move.l (a2),d5
+        add.l #MUSIC_SAMPLES,d5
+        add.l a4,d5
+        move.l d5,$d0(a6)
+        move.w #1,$d4(a6)
+        rts
+
+music_dma_wait:
+        moveq #1,d4
+.line:
+        move.b $6(a6),d5
+.wait:
+        cmp.b $6(a6),d5
+        beq.s .wait
+        dbra d4,.line
         rts
 
 ; Four independent hardware sprites visualize the four actual Paula volumes.
@@ -2098,12 +2654,10 @@ publish_scene:
         beq.s .runner_bg
         cmp.w #7,SCENE(a5)
         bne.s .normal
-        move.l a4,d0
-        add.l #SPACE_BACKGROUND,d0
+        move.l OLD(a5),d0
         bra.s .four
 .runner_bg:
-        move.l a4,d0
-        add.l #SUNSET,d0
+        move.l OLD(a5),d0
         tst.w BODIES(a5)
         beq.s .four
         moveq #4,d7
@@ -2122,6 +2676,15 @@ publish_scene:
         move.w #$2200,2(a1)
         move.w #$2200,$100(a6)
 .planes:
+        cmp.w #2,SCENE(a5)
+        bne.s .plane_ready
+        tst.w d7
+        bne.s .plane_ready
+        cmp.w #32,FRAME(a5)
+        blo.s .plane_ready
+        ; Cached backdrop is read directly by even-plane DMA, without copying.
+        move.l ROTOBGFRONT(a5),d0
+.plane_ready:
         move.w d0,6(a0)
         swap d0
         move.w d0,2(a0)
@@ -2137,8 +2700,14 @@ publish_scene:
 .runner_ptr:
         cmp.w #6,SCENE(a5)
         bne.s .advance
-        moveq #1,d1
+        moveq #2,d1
         add.w BODIES(a5),d1
+        cmp.w d1,d7
+        bne.s .runner_foreground
+        move.l MASKBUF(a5),d0
+        bra.s .advance
+.runner_foreground:
+        subq.w #1,d1
         cmp.w d1,d7
         bne.s .advance
         move.l FRONT(a5),d0
@@ -2164,6 +2733,17 @@ publish_scene:
         add.l #FIGHT_X,a0
         move.w (a0,d0.w),d4
         move.w 2(a0,d0.w),d5
+        tst.w TRAINART(a5)
+        beq.s .fighter_roots
+        bsr train_travel
+        move.w #TRAIN_LEFT_ANCHOR,d4
+        move.w #TRAIN_RIGHT_ANCHOR,d5
+        sub.w d0,d4
+        sub.w d0,d5
+.fighter_roots:
+        moveq #0,d0
+        bsr fighter_pose
+        move.w d0,d6
         move.l COPSPR(a5),a0
         move.l PENDING_L(a5),a2
         bsr fighter_sprites
@@ -2176,6 +2756,10 @@ publish_scene:
         swap d0
         move.w d0,26(a0)
         move.w d0,58(a0)
+        moveq #1,d0
+        bsr fighter_pose
+        move.w d0,d6
+        move.l COPSPR(a5),a0
         lea 32(a0),a0
         move.l PENDING_R(a5),a2
         move.w d5,d4
@@ -2290,8 +2874,8 @@ publish_hires:
         move.l #$018a0112,8(a0)
         move.l #$018e0112,12(a0)
         move.l LOCOP(a5),a0
-        move.l a4,d0
-        add.l #SUNSET+7360,d0
+        move.l OLD(a5),d0
+        add.l #7360,d0
         move.w #$e0,(a0)
         swap d0
         move.w d0,2(a0)
@@ -2356,8 +2940,9 @@ publish_roto:
         move.l d0,a1
         tst.w d5
         beq.s .mods
-        move.w #$57b,6(a0)
-        move.w 18(a0),14(a0)
+        move.w #$012,6(a0)
+        move.w #$68a,14(a0)
+        move.w 10(a0),18(a0)
 .mods:
         move.w (a0),d0
         moveq #0,d2
@@ -2647,6 +3232,8 @@ animate_colours:
         move.l (a0,d0.w),a1
         move.w (a2,d1.w),10(a1)
         dbra d7,.hud
+        cmp.w #1,SCENE(a5)
+        beq .tunnel
         cmp.w #3,SCENE(a5)
         beq.s .dance
         cmp.w #4,SCENE(a5)
@@ -2654,7 +3241,7 @@ animate_colours:
         move.w FRAME(a5),d0
         lsr.w #1,d0
         and.w #63,d0
-        mulu #36,d0
+        mulu #72,d0
         move.l a4,a2
         add.l #HI_CHROME,a2
         add.l d0,a2
@@ -2663,10 +3250,7 @@ animate_colours:
 .chrome:
         move.l (a0)+,a1
         move.w (a2),10(a1)
-        btst #0,d7
-        bne.s .same_colour
         addq.l #2,a2
-.same_colour:
         dbra d7,.chrome
 .done:  rts
 .dance:
@@ -2686,17 +3270,56 @@ animate_colours:
         move.w (a2,d0.w),18(a1)
         dbra d7,.dance_band
         rts
+.tunnel:
+        lea 24(a0),a0
+        moveq #43,d7
+.tunnel_band:
+        move.l (a0)+,a1
+        move.w FRAME(a5),d0
+        move.w d7,d1
+        add.w d1,d1
+        sub.w d1,d0
+        and.w #63,d0
+        mulu #6,d0
+        move.l a4,a2
+        add.l #TUNNEL_COLOURS,a2
+        add.w d0,a2
+        move.w #$012,6(a1)
+        move.w (a2)+,10(a1)
+        move.w (a2)+,14(a1)
+        move.w (a2),18(a1)
+        dbra d7,.tunnel_band
+        rts
 hud_bands: dc.b 2,3,50,51
         even
 
 palette:
         move.l COPEXTRA(a5),a0
+        move.w #$c88,-14(a0)
+        move.w #$856,-10(a0)
+        move.w #$fda,-6(a0)
+        move.w #$ffe,-2(a0)
+        cmp.w #7,SCENE(a5)
+        bne.s .standard_overlay
+        move.w #$8ad,-14(a0)
+        move.w #$8ad,-10(a0)
+        move.w #$8ad,-6(a0)
+        move.w #$8ad,-2(a0)
+.standard_overlay:
         lea default_extra(pc),a1
         moveq #0,d7
 .extra:
         move.w (a1)+,d0
         cmp.w #7,SCENE(a5)
         bne.s .runner_extra
+        cmp.w #8,d7
+        bhs.s .space_flyers
+        move.w #$6ce,d0
+        cmp.w #4,d7
+        blo .extra_set
+        move.w #$dff,d0
+        bra .extra_set
+.space_flyers:
         cmp.w #8,d7
         blo .extra_set
         cmp.w #16,d7
@@ -2806,10 +3429,17 @@ palette:
 .colour:
         cmp.w #5,SCENE(a5)
         bne.s .chrome
-        ; A face keeps its material colour across every raster band.
-        move.w #$5df,d1
-        move.w #$b5f,d2
-        move.w #$fd7,d3
+        move.w FRAME(a5),d4
+        lsr.w #2,d4
+        add.w d7,d4
+        and.w #63,d4
+        mulu #6,d4
+        move.l a4,a1
+        add.l #SOLID_COLOURS,a1
+        add.w d4,a1
+        move.w (a1)+,d1
+        move.w (a1)+,d2
+        move.w (a1),d3
         bra .set
 .chrome:
 
@@ -2858,7 +3488,7 @@ default_extra:
 stats_magic: dc.b 'AURA500!'
 state:
         dc.b 'AURA'           ; boot initialization clears these pointer fields
-        dcb.b 252,0
+        dcb.b 268,0
         even
 assets:
         incbin "build/assets.bin"

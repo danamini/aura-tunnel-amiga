@@ -5,12 +5,13 @@ tunnel_panels:
         movem.l d0-d7/a0-a4,-(sp)
         bsr wait_blit
         move.w FRAME(a5),d4
-        and.w #127,d4
-        mulu #10,d4
-        lsr.w #7,d4
+        lsr.w #TUNNEL_TICK_SHIFT,d4
+        and.w #TUNNEL_PHASES-1,d4
+        mulu #TUNNEL_RINGS,d4
+        lsr.w #TUNNEL_PHASE_BITS,d4
         and.w #1,d4
-        lea 60(a2),a2
-        moveq #3,d7
+        lea TUNNEL_RING_BYTES*TUNNEL_FIRST_FILLED_RING(a2),a2
+        moveq #TUNNEL_FIRST_FILLED_RING,d7
 .ring:
         moveq #0,d6
 .sector:
@@ -26,7 +27,7 @@ tunnel_panels:
         bsr .vertex
         addq.l #2,a1
         bsr .vertex
-        lea 20(a1),a1
+        lea TUNNEL_RING_BYTES(a1),a1
         bsr .vertex
         subq.l #2,a1
         bsr .vertex
@@ -37,11 +38,11 @@ tunnel_panels:
         movem.l (sp)+,d4/d6-d7/a2
 .next:
         addq.w #1,d6
-        cmp.w #8,d6
+        cmp.w #TUNNEL_SECTORS,d6
         blo .sector
-        lea 20(a2),a2
+        lea TUNNEL_RING_BYTES(a2),a2
         addq.w #1,d7
-        cmp.w #9,d7
+        cmp.w #TUNNEL_RINGS-1,d7
         blo .ring
         ; One descending exclusive area fill expands all parity edges.
         bsr wait_blit

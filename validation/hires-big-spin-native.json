@@ -1,0 +1,106 @@
+{
+  "sha256": "4bb999467f4b75ba6fdcca824b94040b1cd682ea3aec7c418312b4052524ae87",
+  "base": 16560,
+  "state": 26848,
+  "pc": 20668,
+  "ticks": 2627,
+  "renders": 1362,
+  "scene": 4,
+  "scene_frame": 1456,
+  "muted": false,
+  "graph_ticks_upper_bound": 0,
+  "graph_x": 0,
+  "graph_y": 0,
+  "performance": [
+    {
+      "scene": "BRIEFING",
+      "presented": 215,
+      "vblanks": 216,
+      "fps": 49.77
+    },
+    {
+      "scene": "NEON TUNNEL",
+      "presented": 235,
+      "vblanks": 472,
+      "fps": 24.89
+    },
+    {
+      "scene": "COPPER ROTO",
+      "presented": 266,
+      "vblanks": 362,
+      "fps": 36.74
+    },
+    {
+      "scene": "STAR SNAKE",
+      "presented": 0,
+      "vblanks": 0,
+      "fps": null
+    },
+    {
+      "scene": "SINE SCROLL",
+      "presented": 568,
+      "vblanks": 1417,
+      "fps": 20.04
+    },
+    {
+      "scene": "SOLID CUBES",
+      "presented": 0,
+      "vblanks": 0,
+      "fps": null
+    },
+    {
+      "scene": "DOT RUNNER",
+      "presented": 0,
+      "vblanks": 0,
+      "fps": null
+    },
+    {
+      "scene": "DEEP SPACE",
+      "presented": 0,
+      "vblanks": 0,
+      "fps": null
+    },
+    {
+      "scene": "3D GRAPHS",
+      "presented": 0,
+      "vblanks": 0,
+      "fps": null
+    },
+    {
+      "scene": "NIGHT TRAIN",
+      "presented": 0,
+      "vblanks": 0,
+      "fps": null
+    }
+  ],
+  "rotating_angles": [
+    0,
+    3,
+    0,
+    0,
+    0,
+    0,
+    12,
+    0,
+    0,
+    0,
+    13,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    5,
+    0,
+    0,
+    0,
+    15,
+    0,
+    0
+  ],
+  "font_bytes_verified": 19920,
+  "stretch_bytes_verified": 5262
+}

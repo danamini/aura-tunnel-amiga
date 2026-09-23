@@ -43,11 +43,11 @@ def text_image(lines, height=8):
 
 names=['BRIEFING','NEON TUNNEL','COPPER ROTO','STAR SNAKE','SINE SCROLL',
        'SOLID CUBES','DOT RUNNER','DEEP SPACE','3D GRAPHS','NIGHT TRAIN']
-durations=[256,512,512,768,1536,512,768,256,512,512]
+durations=[256,512,512,768,1536,512,768,512,512,512]
 put('DURATIONS',words(durations))
 put('HEADERS',b''.join(bits(text_image([(8,0,f'{i+1:02} / {name}'),(232,0,'A500 OCS')])) for i,name in enumerate(names)))
 for name,status in [('HUD_ON','ON'),('HUD_OFF','OFF')]:
-    hud=text_image([(8,4,'A500'),(64,4,'LMB: NEXT'),(160,4,'RMB: '+status),(248,4,'FPS')],16)
+    hud=text_image([(64,4,'LMB: NEXT'),(160,4,'RMB: '+status),(248,4,'FPS')],16)
     hd=ImageDraw.Draw(hud)
     hd.rounded_rectangle((1,0,318,15),radius=3,outline=1)
     hd.line((53,1,53,14),fill=1);hd.line((236,1,236,14),fill=1)
@@ -55,7 +55,11 @@ for name,status in [('HUD_ON','ON'),('HUD_OFF','OFF')]:
 put('FOOTER',bits(text_image([(8,0,'AURA TUNNEL / FROM ZX SPECTRUM TO AMIGA')])) )
 put('RUN_HELP',bits(text_image([(8,0,'PRESS R: BODIES / DOTS')])) )
 brief=['AURA TUNNEL / AMIGA','FROM ZX SPECTRUM TO A500','AN AI-ASSISTED EXPERIMENT','SAME SCENES / TWO MACHINES','CREATE, COMPARE AND LEARN','LEFT MOUSE: NEXT SCENE']
-put('BRIEF',bits(text_image([(32,i*24,s) for i,s in enumerate(brief)],144)))
+from roto_codec import encode, decode
+brief_raw=bits(text_image([(32,i*24,s) for i,s in enumerate(brief)],144))
+brief_packed=encode(brief_raw)
+put('BRIEF_PACKED',brief_packed)
+symbols.append(f'BRIEF_PACKED_SIZE equ {len(brief_packed)}')
 put('GROUND_PATTERN',(REF/'build/gpat.bin').read_bytes())
 put('RUN_SPEEDS',bits(text_image([(32,0,'SLOW'),(240,0,'FAST')])) )
 put('GRAPH_COMPARE',bits(text_image([(8,0,'ZX ROM BASIC: 159.15S / 1363 POINTS'),(8,12,'A500 NATIVE:      MS   ~     X FASTER'),(8,24,'FIXED POINT VS BASIC / NOT CPU RATIO')],36)))
@@ -87,17 +91,17 @@ put('HI_BITMAP_PACKED',hi_packed)
 symbols.extend([f'HI_BITMAP_PACKED_SIZE equ {len(hi_packed)}',f'HI_BITMAP_SIZE equ {len(hi_bitmap)}'])
 (OUT/'hi-bitmap-raw.bin').write_bytes(hi_bitmap)
 from big_spins import generate as generate_big_spins
-spin_map,spin_offsets,spin_data,spin_quad=generate_big_spins(bigtext,Image.open(OUT/'hires-lettering.png'))
+spin_map,spin_offsets,spin_data=generate_big_spins(bigtext,Image.open(OUT/'hires-lettering.png'))
 put('BIG_SPIN_MAP',spin_map);put('BIG_SPIN_INDEX',longs(spin_offsets))
-put('BIG_SPIN_PACKED',spin_data);put('BIG_SPIN_QUAD',longs(spin_quad))
+put('BIG_SPIN_PACKED',spin_data)
 symbols.append(f'BIG_TEXT_CHARS equ {len(bigtext)}')
 
 symbols.extend([f'HI_STRIDE equ {hi_stride}',f'HI_GLYPH_HEIGHT equ {GLYPH_HEIGHT}'])
 hi_base=(72-GLYPH_HEIGHT)//2
 symbols.append(f'HI_BASE_ROW equ {hi_base}')
-wave=[round(hi_base*math.sin(i*math.tau/256)) for i in range(512)]
+wave=[2*round(hi_base*math.sin(i*math.tau/256)/2) for i in range(512)]
 wave_runs=[]
-for phase in range(512):
+for phase in range(256):
     n=1
     while wave[(phase+n)%512]==wave[phase]:n+=1
     wave_runs.extend((n*2,(wave[phase]+hi_base)*80))
@@ -133,16 +137,22 @@ def chrome_at(y):
             return sum(round(((ca>>shift)&15)+(((cb>>shift)&15)-((ca>>shift)&15))*(y-a)/(b-a))<<shift for shift in (8,4,0))
     return chrome_stops[-1][1]
 def chrome_tint(y,phase):
-    reflection=(y+phase*56/64)%56
+    # Two travelling reflections cross a saturated, continuously turning hue.
+    reflection=(y+phase*1.75+5*math.sin(y*.19+phase*.23))%56
     colour=chrome_at(reflection)
-    if 28<reflection<53:
-        brightness=max((colour>>8)&15,(colour>>4)&15,colour&15)/15
-        rgb=colorsys.hsv_to_rgb((.62+phase/64)%1,.65,brightness)
-        colour=sum(round(c*15)<<shift for c,shift in zip(rgb,(8,4,0)))
-    return colour
-put('HI_CHROME',words([chrome_tint(27.5+(band*4+1.5-35.5)*56/72/(.62+.38*math.cos(phase*math.tau/64)),phase)
-                      for phase in range(64) for band in range(18)]))
-put('HI_STRETCH_INDEX',words(stretch_index));put('HI_STRETCH',stretch);put('ZERO_ROW',bytes(80))
+    brightness=max((colour>>8)&15,(colour>>4)&15,colour&15)/15
+    hue=(phase/64+y/100+.10*math.sin(phase*.2-y*.13))%1
+    saturation=.78 if brightness<.88 else .24
+    rgb=colorsys.hsv_to_rgb(hue,saturation,brightness)
+    return sum(round(c*15)<<shift for c,shift in zip(rgb,(8,4,0)))
+put('HI_CHROME',words([chrome_tint(band*2,phase)
+                      for phase in range(64) for band in range(36)]))
+stretch_packed=encode(stretch)
+put('HI_STRETCH_INDEX',words(stretch_index));put('HI_STRETCH_PACKED',stretch_packed);put('ZERO_ROW',bytes(80))
+symbols.extend([f'HI_STRETCH_SIZE equ {len(stretch)}',
+                f'HI_STRETCH_PACKED_SIZE equ {len(stretch_packed)}',
+                'HI_STRETCH_CACHE equ 320'])
+assert len(stretch)+320<=40*256
 from dancing_scroll import generate as generate_dancing
 scroll_message,scroll_packed,scroll_raw=generate_dancing()
 put('DANCE_MESSAGE',scroll_message)
@@ -150,29 +160,20 @@ put('DANCE_PACKED',scroll_packed)
 symbols.extend([f'DANCE_CHARS equ {len(scroll_message)}',f'DANCE_PACKED_SIZE equ {len(scroll_packed)}',f'DANCE_RAW_SIZE equ {len(scroll_raw)}'])
 (OUT/'dance-raw.bin').write_bytes(scroll_raw)
 
-# Native line-mode tunnel: ten twisted octagonal rings plus depth rails.
-# Store vertices, not full frames or per-pixel masks; the blitter draws them.
-tunnel=bytearray();idx=[]
-for f in range(128):
-    idx.append(len(tunnel));rings=[]
-    depths=sorted(((ring*128/10+f)%128)/128 for ring in range(10))
-    for depth in depths:
-        radius=2+70*depth*depth/(1-depth)
-        cx=160+14*math.sin(f*math.tau/128+depth*2)
-        cy=112+6*math.cos(f*math.tau/128+depth*3)
-        angle=f*math.tau/128*.25+depth*.45
-        vertices=[(max(0,min(318,round(cx+radius*math.cos(i*math.tau/8+angle)))),
-                   max(26,min(198,round(cy+radius*.54*math.sin(i*math.tau/8+angle))))) for i in range(8)]
-        style=2 if depth<.35 else 3 if depth>.8 else 1
-        tunnel+=words([style])+bytes(v for x,y in vertices+[vertices[0]] for v in (x//2,y))
-        rings.append((style,vertices))
-    if f==20:
-        preview=Image.new('RGB',(320,256),(3,5,20));pd=ImageDraw.Draw(preview)
-        for left,right in zip(rings,rings[1:]):
-            for i in range(0,8,2):pd.line([left[1][i],right[1][i]],fill=(88,64,167))
-        for style,vertices in rings:pd.line(vertices+[vertices[0]],fill={1:(64,221,255),2:(113,72,194),3:(255,207,235)}[style])
-        preview.resize((960,768),Image.Resampling.NEAREST).save(OUT/'neon-tunnel.png')
+# Native twelve-facet tunnel, sampled at its 25 FPS geometry cadence.
+from tunnel_geometry import generate as generate_tunnel, constants as tunnel_constants
+idx,tunnel=generate_tunnel()
 put('TUNNEL_INDEX',longs(idx));put('TUNNEL',tunnel)
+symbols.extend(f'{name} equ {value}' for name,value in tunnel_constants().items())
+# Dark jewel walls, pale ribs and bright intersections. Copper bands travel
+# independently of the geometry so a bend carries changing reflections.
+tunnel_colours=[]
+for phase in range(64):
+    hue=(.55+phase/64)%1
+    for saturation,brightness in ((.35,1),(.88,.58),(.12,1)):
+        tunnel_colours.append(sum(round(c*15)<<shift for c,shift in
+                              zip(colorsys.hsv_to_rgb(hue,saturation,brightness),(8,4,0))))
+put('TUNNEL_COLOURS',words(tunnel_colours))
 
 # Roto: independent compressed 320x80 poses; Copper repeats rows twice.
 from roto_codec import generate as generate_roto
@@ -210,7 +211,9 @@ for colour,base,amp,phase in [(1,148,19,.4),(2,169,11,2.1),(3,185,5,4.2)]:
     sd.polygon(contour+[(319,199),(0,199)],fill=colour)
 for x in range(320):
     if x%3!=0:sd.point((x,189+(x%5==0)),fill=2)
-put('SUNSET',b''.join(bits(sunset.point(lambda p:255 if p&(1<<plane) else 0,'1')) for plane in range(3)))
+sunset_raw=b''.join(bits(sunset.point(lambda p:255 if p&(1<<plane) else 0,'1')) for plane in range(3))
+for name,raw in [('SUNSET_LOW',sunset_raw[:20480]),('SUNSET_HIGH',sunset_raw[20480:])]:
+    data=encode(raw);put(name,data);symbols.append(f'{name}_SIZE equ {len(data)}')
 stops=[(0,(1,1,3)),(24,(2,2,5)),(72,(7,4,6)),(112,(14,6,5)),(148,(15,10,6)),(196,(15,12,8)),(200,(0,0,0)),(208,(0,0,0))]
 sunset_ramp=[]
 for row in range(52):
@@ -272,7 +275,16 @@ for y in range(24,200):
             value=1 if light<.25 else 2 if light<.75 else 3
             if (y+int(4*math.sin(x*.14)))%9<2 and value>1:value-=1
         space_bg.putpixel((x,y),value)
-put('SPACE_BACKGROUND',b''.join(bits(space_bg.point(lambda p:255 if p&(1<<plane) else 0,'1')) for plane in range(2)))
+space_raw=b''.join(bits(space_bg.point(lambda p:255 if p&(1<<plane) else 0,'1')) for plane in range(2))
+space_packed=encode(space_raw)
+put('SPACE_BACKGROUND_PACKED',space_packed)
+symbols.append(f'SPACE_BACKGROUND_PACKED_SIZE equ {len(space_packed)}')
+from space_reactor import generate as generate_reactor, FRAMES as REACTOR_FRAMES, ROW_BYTES, HEIGHT as REACTOR_HEIGHT, PLANE_BYTES, POSE_BYTES, X as REACTOR_X, Y as REACTOR_Y
+reactor_index,reactor_data=generate_reactor()
+put('REACTOR_INDEX',longs(reactor_index));put('REACTOR_PACKED',reactor_data)
+symbols.extend([f'REACTOR_FRAMES equ {REACTOR_FRAMES}',f'REACTOR_WORDS equ {ROW_BYTES//2}',
+                f'REACTOR_HEIGHT equ {REACTOR_HEIGHT}',f'REACTOR_PLANE_BYTES equ {PLANE_BYTES}',
+                f'REACTOR_POSE_BYTES equ {POSE_BYTES}',f'REACTOR_X equ {REACTOR_X}',f'REACTOR_Y equ {REACTOR_Y}'])
 planet_spans=[]
 for y in range(256):
     covered=[x for x in range(320) if planet_mask.getpixel((x,y))]
@@ -327,6 +339,17 @@ for layer,(source,height) in enumerate(((city,104),(car,52))):
     symbols.append(f'TRAIN_ART{layer}_SIZE equ {len(compressed)}')
 put('TRAIN_HELP',bits(text_image([(8,0,'R: NEW / ORIGINAL ART | ZX TO AMIGA')])) )
 
+# Reuse the demo's galaxy/planet illustration behind transparent roto checks.
+# A single full-height plane keeps the backdrop independent of row repetition.
+roto_bg=space_bg.point(lambda p:255 if p>=2 else 0,'1')
+from roto_background import generate as generate_roto_background, ANGLE_STEPS, CYCLE_PHASES, TICK_SHIFT, POSE_BYTES as BG_POSE_BYTES, TOP as BG_TOP
+bg_index,bg_data=generate_roto_background(roto_bg)
+put('ROTO_BG_INDEX',longs(bg_index));put('ROTO_BG_PACKED',bg_data)
+symbols.extend([f'ROTO_BG_STEPS equ {ANGLE_STEPS}',f'ROTO_BG_PHASES equ {CYCLE_PHASES}',
+                f'ROTO_BG_TICK_SHIFT equ {TICK_SHIFT}',f'ROTO_BG_BYTES equ {BG_POSE_BYTES}',
+                f'ROTO_BG_OFFSET equ {BG_TOP*40}'])
+roto_bg.save(OUT/'roto-background.png')
+
 space_bg.putpalette([5,8,24,45,23,83,149,61,155,255,195,159]+[0]*756)
 space_bg.save(OUT/'space-asset.png')
 
@@ -345,7 +368,28 @@ def cube(size, phase):
         d.polygon([(verts[k][0],verts[k][1]) for k in face],fill=(i//2)+1)
     padded=Image.new('P',(size+16,size));padded.paste(im,(0,0))
     return b''.join(bits(padded.point(lambda p:255 if p&(1<<plane) else 0,'1')) for plane in range(2))+bits(padded.point(lambda p:255 if p else 0,'1'))
-put('CUBES',b''.join(cube(48,i) for i in range(32)))
+from solid_shapes import generate as generate_solids, SHAPES, FRAMES as SOLID_FRAMES
+solid_index,solid_packed,solid_offsets,solid_bytes,previews=generate_solids()
+put('SOLID_INDEX',longs(solid_index));put('SOLID_PACKED',solid_packed)
+layout=[]
+for offset,(_,size) in zip(solid_offsets,SHAPES):
+    width=(size+15)//16+1
+    layout.extend([offset,size,width,width*2*size])
+put('SOLID_LAYOUT',words(layout))
+symbols.extend([f'SOLID_FRAMES equ {SOLID_FRAMES}',f'SOLID_BYTES equ {solid_bytes}',f'SOLID_COUNT equ {len(SHAPES)}'])
+# Copper gives the solids travelling cyan, violet, orange and gold reflections.
+solid_colours=[]
+for phase in range(64):
+    for face in range(3):
+        hue=(phase/64+face*.19)%1
+        rgb=colorsys.hsv_to_rgb(hue,.65 if face!=2 else .30,[.62,.85,1][face])
+        solid_colours.append(sum(round(c*15)<<shift for c,shift in zip(rgb,(8,4,0))))
+put('SOLID_COLOURS',words(solid_colours))
+preview=Image.new('RGB',(5*80,4*80),(5,8,24))
+for phase,i,im in previews:
+    im.putpalette([5,8,24,65,210,240,178,90,245,255,220,125]+[0]*756)
+    preview.paste(im.convert('RGB'),(i*80+(80-im.width)//2,(phase//4)*80+(80-im.height)//2))
+preview.save(OUT/'solid-shapes.png')
 put('MINICUBES',b''.join(cube(16,i) for i in range(32)))
 
 # Keep the actual source runners (CMU joints), including their pose counts.
@@ -374,7 +418,7 @@ put('BODY_INDEX',longs(body_index));put('BODY_DATA',body_data)
 mustermann_sequence=list(range(4,27))+list(range(140,164))+list(range(810,819))
 jones_selection=json.loads((ROOT/'assets/fighters/jones-selection.json').read_text())
 jones_sequence=jones_selection['indices']
-sprite_poses=bytearray();previews=[]
+sprite_poses=bytearray();previews=[];fighter_feet=[]
 for filename,sequence,crop,colours in [
     ('mustermann.gif',mustermann_sequence,(43,51,199,223),[(28,35,51),(239,184,138),(216,139,39)]),
     ('jones.gif',jones_sequence,tuple(jones_selection['crop']),[(28,35,51),(239,184,138),(103,119,45)]),
@@ -392,6 +436,7 @@ for filename,sequence,crop,colours in [
                 frame.putpixel((x,y),idx)
         frame.putpalette([0,0,0]+[v for c in colours for v in c]+[0]*756)
         previews.append(frame.convert('RGB'))
+        fighter_feet.append(frame.getbbox()[3])
         for segment in range(3):
             hx=129+112+segment*16
             sprite_poses+=words([(148<<8)|(hx>>1),(204<<8)|(hx&1)])
@@ -405,8 +450,23 @@ for offset in range(0,len(sprite_poses),696):
     raw=bytes(sprite_poses[offset:offset+696]);packed=encode(raw)
     assert decode(packed,696)==raw
     fighter_compressed.extend(packed);fighter_offsets.append(len(fighter_compressed))
+put('FIGHTER_FEET',words(fighter_feet))
 put('FIGHTER_INDEX',longs(fighter_offsets))
 put('FIGHTER_COMPRESSED',fighter_compressed)
+# Bake Jones facing left. This removes the per-frame 336-word CPU mirror.
+reverse=bytes(int(f'{v:08b}'[::-1],2) for v in range(256))
+right_index=[0];right_packed=bytearray()
+for pose in range(len(mustermann_sequence),len(mustermann_sequence)+len(jones_sequence)):
+    raw=sprite_poses[pose*696:(pose+1)*696];mirrored=bytearray()
+    for segment in (2,1,0):
+        block=raw[segment*232:(segment+1)*232];mirrored.extend(block[:4])
+        for offset in range(4,228,2):
+            mirrored.extend((reverse[block[offset+1]],reverse[block[offset]]))
+        mirrored.extend(bytes(4))
+    packed=encode(mirrored);assert decode(packed,696)==mirrored
+    right_packed.extend(packed);right_index.append(len(right_packed))
+put('RIGHT_FIGHTER_INDEX',longs(right_index));put('RIGHT_FIGHTER_PACKED',right_packed)
+symbols.append(f'JONES_FIRST equ {len(mustermann_sequence)}')
 (OUT/'fighter-raw.bin').write_bytes(sprite_poses)
 fight_script=(REF/'src/main.asm').read_text().split('FIGHTS:',1)[1]
 fight_steps=[]
@@ -458,23 +518,14 @@ scoreout=OUT/'score-reference';scoreout.mkdir(exist_ok=True)
 oldargv=sys.argv;sys.argv=['gen_ay128.py',str(scoreout)]
 spec=importlib.util.spec_from_file_location('spectrum_score',REF/'tools/gen_ay128.py')
 score=importlib.util.module_from_spec(spec);spec.loader.exec_module(score);sys.argv=oldargv
-notes=bytearray()
-for step,note in enumerate(score.MELODY):
-    root=score.BASS[step//8]
-    bass=root
-    if 64<=step<128 and step%4==2:bass=root[:-1]+str(int(root[-1])+1)
-    def period(n):return max(124,min(65535,round(3546895/(64*score.note_hz(n))))) if n else 0
-    notes+=words([period(note),period(bass),period(root)//2,
-                  420 if step%16 in (4,12) else 150])
-put('SCORE',notes)
-symbols.append(f'SCORE_STEPS equ {len(score.MELODY)}')
-put('LEAD_SAMPLE',bytes(round(100*(1-4*abs(i/64-.5)))&255 for i in range(64)))
-put('BASS_SAMPLE',bytes(round(110*math.sin(i*math.tau/64))&255 for i in range(64)))
-put('PAD_SAMPLE',bytes(round(65*math.sin(i*math.tau/64)+20*math.sin(i*math.tau/32))&255 for i in range(64)))
-put('DRUM_SAMPLE',bytes(rng.randrange(-95,96)&255 for _ in range(256)))
-put('VOLUME_ENV',words([42,42,38,36,32,28,24,20,12,0,
- 48,44,40,36,32,28,24,20,16,12, 20,20,19,19,18,18,17,17,16,16,
- 38,22,10,4,0,0,0,0,0,0]))
+from music import bake, preview, STEP_TICKS, SECTION_STEPS
+music_assets, arrangement = bake(score)
+for name, data in music_assets.items(): put(name, data)
+symbols += [f'MUSIC_STEP_TICKS equ {STEP_TICKS}',
+            f'MUSIC_SECTION_TICKS equ {SECTION_STEPS*STEP_TICKS}',
+            f'MUSIC_TOTAL_TICKS equ {len(score.MELODY)*STEP_TICKS}',
+            f'MUSIC_SILENCE equ {len(arrangement[0])-1}']
+preview(OUT/'music-preview.wav', arrangement)
 
 # 16 ordered dissolve thresholds, an eight-row mask repeated vertically.
 bayer=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]]

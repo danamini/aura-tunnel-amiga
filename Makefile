@@ -3,10 +3,10 @@ VASM = bin/vasmm68k_mot
 
 all: build/aura-tunnel-amiga.adf
 
-build/assets.i: tools/gen_assets.py tools/runner_bodies.py tools/hires_font.py tools/hud_font.py tools/roto_codec.py tools/dancing_scroll.py tools/fighter_choreography.py tools/big_spins.py $(wildcard assets/reference/build/*) assets/reference/tools/gen_font.py assets/reference/tools/gen_ay128.py assets/reference/tools/mocap_runner.py assets/reference/assets/mocap/09_01.bvh $(wildcard assets/fighters/*) $(wildcard assets/art/*.png)
+build/assets.i: tools/gen_assets.py tools/solid_shapes.py tools/space_reactor.py tools/roto_background.py tools/music.py tools/tunnel_geometry.py tools/runner_bodies.py tools/hires_font.py tools/hud_font.py tools/roto_codec.py tools/dancing_scroll.py tools/fighter_choreography.py tools/big_spins.py $(wildcard assets/reference/build/*) assets/reference/tools/gen_font.py assets/reference/tools/gen_ay128.py assets/reference/tools/mocap_runner.py assets/reference/assets/mocap/09_01.bvh $(wildcard assets/fighters/*) $(wildcard assets/art/*.png)
 	$(PYTHON) tools/gen_assets.py
 
-build/demo.bin: src/main.asm src/roto_decode.asm src/tunnel_fill.asm src/dancing_scroll.asm src/big_spins.asm build/assets.i
+build/demo.bin: src/main.asm src/roto_decode.asm src/roto_background.asm src/tunnel_fill.asm src/dancing_scroll.asm src/big_spins.asm build/assets.i
 	$(VASM) -m68000 -Fbin -quiet -L build/demo.lst -o $@ src/main.asm
 
 build/aura-tunnel-amiga.adf: build/demo.bin src/boot.asm tools/build_disk.py

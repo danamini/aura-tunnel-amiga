@@ -1,4 +1,4 @@
-"""Package the bootable development preview with its provenance and notices."""
+"""Package the bootable demo with its provenance and notices."""
 from pathlib import Path
 import hashlib
 import json
@@ -11,6 +11,7 @@ dest.mkdir(exist_ok=True)
 disk = build / 'aura-tunnel-amiga.adf'
 binary = (build / 'demo.bin').read_bytes()
 shutil.copyfile(disk, dest / disk.name)
+shutil.copyfile(build/'music-preview.wav', dest/'music-preview.wav')
 
 # Only normalize presentation whitespace; retain every notice's text and source.
 notice_sources = [
@@ -28,7 +29,8 @@ for name in notice_sources:
 allocation = ((len(binary) + 511) & ~511) + 4096
 scenes = json.loads((build / 'scenes.json').read_text())
 metadata = {
-    'status': 'development preview',
+    'status': 'release',
+    'release': 'amiga-v1.1',
     'platform': 'Amiga 500 / PAL / OCS / 68000',
     'memory': '512 KiB CHIP + 512 KiB slow; no fast RAM',
     'spectrum_source': 'https://github.com/danamini/aura-tunnel',
@@ -37,7 +39,7 @@ metadata = {
     'payload_bytes': len(binary),
     'chip_allocation_bytes': allocation,
     'scene_cycle_seconds': sum(scene['ticks'] for scene in scenes) / 50,
-    'limitations': 'See docs/implementation-plan.md; this preview is not a finished release.',
+    'validation_notes': 'See docs/implementation-plan.md for emulator measurements and hardware validation status.',
 }
 (dest / 'build-info.json').write_text(json.dumps(metadata, indent=2) + '\n')
 print(dest / disk.name)

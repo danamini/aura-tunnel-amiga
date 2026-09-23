@@ -1,0 +1,24 @@
+{
+  "scope": "Generated geometry and modeled native Q6 writes; not runtime FPS",
+  "assets_sha256": "9ea9ae5a416d4967f7a5dba84cb900cfc6454bf0b897603e0829999a947fd470",
+  "renderer_sha256": "af1ec6bfe214f7ec4d7920e5d00883880f4794478abf9132fec645451cc9ac64",
+  "frames_checked": 64,
+  "sectors": 12,
+  "rings": 10,
+  "first_filled_ring": 5,
+  "generator_sha256": "34ae5f877d13f390cd34d9b108fe4bb76037ac0e38583e74956c68960f58874f",
+  "all_nearest_rings_cover_viewport_corners": true,
+  "all_parity_rows_closed": true,
+  "all_writes_inside_fill_rectangle": true,
+  "all_q6_values_fit_signed_word": true,
+  "plane_relative_write_byte_range": [
+    1040,
+    7919
+  ],
+  "maximum_sampled_q6_magnitude": 20384,
+  "edge_samples_per_frame": {
+    "minimum": 836,
+    "maximum": 1094,
+    "mean": 909.625
+  }
+}

@@ -27,6 +27,10 @@ Neon Drive by this project, Beethoven's Ode to Joy, and the project's Night Flig
 The first and third melodies are public domain. The arrangements and other themes
 are covered by the source MIT licence. The Amiga version uses procedural sampled
 instruments through Paula's four DMA voices, which accounts for its different sound.
+The current Amiga arrangement adds independent bass and arpeggio patterns,
+section-specific waveforms, and procedural kick, snare, hi-hat and tom samples.
+The downloadable WAV is generated from those samples, periods and envelopes;
+it is not a hardware recording.
 
 The small HUD alphabet is original code in `tools/hud_font.py`. Pillow is a
 build-time image processing dependency. Large outlined lettering comes

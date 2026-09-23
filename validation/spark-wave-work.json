@@ -1,0 +1,15 @@
+{
+  "scope": "Offline workload model across all 512 wave starts; not measured FPS",
+  "vertical_row_quantum": {
+    "1": {
+      "minimum": 74,
+      "maximum": 88,
+      "mean": 80.75
+    },
+    "2": {
+      "minimum": 37,
+      "maximum": 45,
+      "mean": 40.875
+    }
+  }
+}

@@ -8,8 +8,11 @@ import hashlib
 import json
 from pathlib import Path
 import struct
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'tools'))
+from tunnel_geometry import PHASES, RINGS, SECTORS, RING_BYTES, FRAME_BYTES, FIRST_FILLED_RING
 
 
 def trunc_div(numerator, denominator):
@@ -27,18 +30,18 @@ def main():
 
     tunnel = asset('TUNNEL')
     indices = [item[0] for item in struct.iter_unpack('>I', asset('TUNNEL_INDEX'))]
-    assert len(indices) == 128, 'Native renderer masks phase to 127'
+    assert len(indices) == PHASES
     assert indices[0] == 0
     ends = indices[1:] + [len(tunnel)]
     samples = []
     min_write, max_write = 10240, 0
     max_q6 = 0
     for phase, (start, end) in enumerate(zip(indices, ends)):
-        assert end - start == 200, 'Native renderer expects ten 20-byte rings'
+        assert end - start == FRAME_BYTES
         rings = []
-        for offset in range(start, end, 20):
+        for offset in range(start, end, RING_BYTES):
             vertices = [(tunnel[offset + 2 + i * 2] * 2,
-                         tunnel[offset + 3 + i * 2]) for i in range(9)]
+                         tunnel[offset + 3 + i * 2]) for i in range(SECTORS + 1)]
             assert vertices[0] == vertices[-1], (phase, 'ring closure')
             assert all(0 <= x <= 318 and 26 <= y <= 198 for x, y in vertices)
             rings.append(vertices)
@@ -46,9 +49,9 @@ def main():
             phase, 'nearest ring does not cover viewport before recycling')
         crossings = [set() for _ in range(128)]
         count = 0
-        for ring in range(3, 9):
-            for sector in range(8):
-                if (sector + ring + phase * 10 // 128) & 1:
+        for ring in range(FIRST_FILLED_RING, RINGS - 1):
+            for sector in range(SECTORS):
+                if (sector + ring + phase * RINGS // PHASES) & 1:
                     continue
                 quad = [rings[ring][sector], rings[ring][sector + 1],
                         rings[ring + 1][sector + 1], rings[ring + 1][sector]]
@@ -84,6 +87,9 @@ def main():
         'assets_sha256': hashlib.sha256(data).hexdigest(),
         'renderer_sha256': hashlib.sha256((ROOT / 'src/tunnel_fill.asm').read_bytes()).hexdigest(),
         'frames_checked': len(indices),
+        'sectors': SECTORS, 'rings': RINGS,
+        'first_filled_ring': FIRST_FILLED_RING,
+        'generator_sha256': hashlib.sha256((ROOT / 'tools/tunnel_geometry.py').read_bytes()).hexdigest(),
         'all_nearest_rings_cover_viewport_corners': True,
         'all_parity_rows_closed': True,
         'all_writes_inside_fill_rectangle': True,
@@ -93,7 +99,7 @@ def main():
         'edge_samples_per_frame': {'minimum': min(samples), 'maximum': max(samples),
                                    'mean': sum(samples) / len(samples)},
     }
-    output = ROOT / 'validation/tunnel-geometry-check.json'
+    output = ROOT / 'validation/tunnel-complex-geometry.json'
     output.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, indent=2))
 

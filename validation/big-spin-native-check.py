@@ -5,6 +5,7 @@ root=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(root/'tools'))
 from read_snapshot import inspect
 from roto_codec import decode
+from big_spins import POSE_BYTES
 result,saved=inspect(root/'emulator-data/states/Saved State 1.uss')
 assert result['sha256']==hashlib.sha256((root/'build/demo.bin').read_bytes()).hexdigest(),'Rebuild changed native addresses/assets'
 assert result['scene']==4,'Save state must be in big sine scene'
@@ -17,16 +18,19 @@ constants=dict(re.findall(r'^(\w+) equ (\d+)$',(root/'build/assets.i').read_text
 stride=int(constants['HI_STRIDE']);width=int(constants['HIWIDTH'])
 expected=bytearray((root/'build/hi-bitmap-raw.bin').read_bytes())
 angles=memory[state+212:state+212+len(asset('BIG_SPIN_MAP'))]
-index=struct.unpack('>65I',asset('BIG_SPIN_INDEX'));packed=asset('BIG_SPIN_PACKED')
+index=struct.unpack('>'+str(len(asset('BIG_SPIN_INDEX'))//4)+'I',asset('BIG_SPIN_INDEX'));packed=asset('BIG_SPIN_PACKED')
 for char,(family,angle) in enumerate(zip(asset('BIG_SPIN_MAP'),angles)):
     if family==255 or angle==0:continue
-    pose=family*16+angle;raw=decode(packed[index[pose]:index[pose+1]],160)
+    pose=family*16+angle;raw=decode(packed[index[pose]:index[pose+1]],POSE_BYTES)
     for row in range(40):
-        bits=''.join(bit*4 for byte in raw[row*4:row*4+4] for bit in f'{byte:08b}')
-        expected[row*stride+char*16:row*stride+char*16+16]=int(bits,2).to_bytes(16,'big')
+        expected[row*stride+char*16:row*stride+char*16+16]=raw[row*16:row*16+16]
 for row in range(40):expected[row*stride+width//8:(row+1)*stride]=expected[row*stride:row*stride+82]
 assert any(angles),'Must capture an active rotating pose'
 assert memory[u32(8):u32(8)+len(expected)]==expected,'Native rotation cache differs from expected'
+stretch=decode(asset('HI_STRETCH_PACKED'),int(constants['HI_STRETCH_SIZE']))
+stretch_address=u32(72)+int(constants['HI_STRETCH_CACHE'])
+assert memory[stretch_address:stretch_address+len(stretch)]==stretch,'Wave mask overwrote stretch cache'
 result['rotating_angles']=list(angles);result['font_bytes_verified']=len(expected)
-(root/'validation/september-refinement-big-spin.json').write_text(json.dumps(result,indent=2)+'\n')
+result['stretch_bytes_verified']=len(stretch)
+(root/'validation/hires-big-spin-native.json').write_text(json.dumps(result,indent=2)+'\n')
 print('PASS native spinning font and wrapped seam:',len(expected),'bytes; angles',list(angles))

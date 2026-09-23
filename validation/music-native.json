@@ -1,0 +1,1467 @@
+[
+  {
+    "sha256": "30fb7a3737befdbd584d7a611c36f6dadd63c497005479070b595d2d822327d1",
+    "base": 16560,
+    "state": 26850,
+    "pc": 18254,
+    "ticks": 1178,
+    "renders": 785,
+    "scene": 1,
+    "scene_frame": 6,
+    "muted": false,
+    "graph_ticks_upper_bound": 0,
+    "graph_x": 0,
+    "graph_y": 0,
+    "performance": [
+      {
+        "scene": "BRIEFING",
+        "presented": 215,
+        "vblanks": 216,
+        "fps": 49.77
+      },
+      {
+        "scene": "NEON TUNNEL",
+        "presented": 235,
+        "vblanks": 472,
+        "fps": 24.89
+      },
+      {
+        "scene": "COPPER ROTO",
+        "presented": 268,
+        "vblanks": 364,
+        "fps": 36.81
+      },
+      {
+        "scene": "STAR SNAKE",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "SINE SCROLL",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "SOLID CUBES",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "DOT RUNNER",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "DEEP SPACE",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "3D GRAPHS",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "NIGHT TRAIN",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      }
+    ],
+    "music_tick": 5,
+    "theme": "Neon Drive",
+    "step": 64,
+    "phase": 5,
+    "voices": [
+      {
+        "channel": 0,
+        "volume": 40,
+        "period": 504,
+        "instrument": 1,
+        "loop_words": 8,
+        "remaining_words": 6,
+        "dma_pointer": 365288,
+        "loop_pointer": 365284
+      },
+      {
+        "channel": 1,
+        "volume": 24,
+        "period": 2015,
+        "instrument": 5,
+        "loop_words": 8,
+        "remaining_words": 6,
+        "dma_pointer": 365352,
+        "loop_pointer": 365348
+      },
+      {
+        "channel": 2,
+        "volume": 12,
+        "period": 504,
+        "instrument": 7,
+        "loop_words": 8,
+        "remaining_words": 4,
+        "dma_pointer": 365388,
+        "loop_pointer": 365380
+      },
+      {
+        "channel": 3,
+        "volume": 0,
+        "period": 428,
+        "instrument": 8,
+        "loop_words": 1,
+        "remaining_words": 1,
+        "dma_pointer": 367060,
+        "loop_pointer": 367060
+      }
+    ]
+  },
+  {
+    "sha256": "30fb7a3737befdbd584d7a611c36f6dadd63c497005479070b595d2d822327d1",
+    "base": 16560,
+    "state": 26850,
+    "pc": 17014,
+    "ticks": 5007,
+    "renders": 2875,
+    "scene": 2,
+    "scene_frame": 3,
+    "muted": false,
+    "graph_ticks_upper_bound": 0,
+    "graph_x": 0,
+    "graph_y": 0,
+    "performance": [
+      {
+        "scene": "BRIEFING",
+        "presented": 215,
+        "vblanks": 216,
+        "fps": 49.77
+      },
+      {
+        "scene": "NEON TUNNEL",
+        "presented": 470,
+        "vblanks": 944,
+        "fps": 24.89
+      },
+      {
+        "scene": "COPPER ROTO",
+        "presented": 611,
+        "vblanks": 837,
+        "fps": 36.5
+      },
+      {
+        "scene": "STAR SNAKE",
+        "presented": 363,
+        "vblanks": 728,
+        "fps": 24.93
+      },
+      {
+        "scene": "SINE SCROLL",
+        "presented": 618,
+        "vblanks": 1502,
+        "fps": 20.57
+      },
+      {
+        "scene": "SOLID CUBES",
+        "presented": 455,
+        "vblanks": 456,
+        "fps": 49.89
+      },
+      {
+        "scene": "DOT RUNNER",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "DEEP SPACE",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "3D GRAPHS",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "NIGHT TRAIN",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      }
+    ],
+    "music_tick": 3,
+    "theme": "Ode to Joy",
+    "step": 128,
+    "phase": 3,
+    "voices": [
+      {
+        "channel": 0,
+        "volume": 48,
+        "period": 336,
+        "instrument": 2,
+        "loop_words": 8,
+        "remaining_words": 5,
+        "dma_pointer": 365306,
+        "loop_pointer": 365300
+      },
+      {
+        "channel": 1,
+        "volume": 40,
+        "period": 1695,
+        "instrument": 4,
+        "loop_words": 8,
+        "remaining_words": 5,
+        "dma_pointer": 365338,
+        "loop_pointer": 365332
+      },
+      {
+        "channel": 2,
+        "volume": 24,
+        "period": 283,
+        "instrument": 6,
+        "loop_words": 8,
+        "remaining_words": 2,
+        "dma_pointer": 365376,
+        "loop_pointer": 365364
+      },
+      {
+        "channel": 3,
+        "volume": 0,
+        "period": 428,
+        "instrument": 8,
+        "loop_words": 1,
+        "remaining_words": 1,
+        "dma_pointer": 367060,
+        "loop_pointer": 367060
+      }
+    ]
+  },
+  {
+    "sha256": "30fb7a3737befdbd584d7a611c36f6dadd63c497005479070b595d2d822327d1",
+    "base": 16560,
+    "state": 26850,
+    "pc": 17014,
+    "ticks": 7280,
+    "renders": 3992,
+    "scene": 5,
+    "scene_frame": 88,
+    "muted": false,
+    "graph_ticks_upper_bound": 0,
+    "graph_x": 0,
+    "graph_y": 0,
+    "performance": [
+      {
+        "scene": "BRIEFING",
+        "presented": 215,
+        "vblanks": 216,
+        "fps": 49.77
+      },
+      {
+        "scene": "NEON TUNNEL",
+        "presented": 470,
+        "vblanks": 944,
+        "fps": 24.89
+      },
+      {
+        "scene": "COPPER ROTO",
+        "presented": 955,
+        "vblanks": 1310,
+        "fps": 36.45
+      },
+      {
+        "scene": "STAR SNAKE",
+        "presented": 409,
+        "vblanks": 822,
+        "fps": 24.88
+      },
+      {
+        "scene": "SINE SCROLL",
+        "presented": 1236,
+        "vblanks": 3004,
+        "fps": 20.57
+      },
+      {
+        "scene": "SOLID CUBES",
+        "presented": 502,
+        "vblanks": 504,
+        "fps": 49.8
+      },
+      {
+        "scene": "DOT RUNNER",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "DEEP SPACE",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "3D GRAPHS",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "NIGHT TRAIN",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      }
+    ],
+    "music_tick": 87,
+    "theme": "Ode to Joy",
+    "step": 136,
+    "phase": 7,
+    "voices": [
+      {
+        "channel": 0,
+        "volume": 28,
+        "period": 424,
+        "instrument": 2,
+        "loop_words": 8,
+        "remaining_words": 8,
+        "dma_pointer": 365300,
+        "loop_pointer": 365300
+      },
+      {
+        "channel": 1,
+        "volume": 8,
+        "period": 2262,
+        "instrument": 4,
+        "loop_words": 8,
+        "remaining_words": 6,
+        "dma_pointer": 365336,
+        "loop_pointer": 365332
+      },
+      {
+        "channel": 2,
+        "volume": 0,
+        "period": 377,
+        "instrument": 6,
+        "loop_words": 8,
+        "remaining_words": 6,
+        "dma_pointer": 365368,
+        "loop_pointer": 365364
+      },
+      {
+        "channel": 3,
+        "volume": 0,
+        "period": 428,
+        "instrument": 8,
+        "loop_words": 1,
+        "remaining_words": 1,
+        "dma_pointer": 367060,
+        "loop_pointer": 367060
+      }
+    ]
+  },
+  {
+    "sha256": "30fb7a3737befdbd584d7a611c36f6dadd63c497005479070b595d2d822327d1",
+    "base": 16560,
+    "state": 26850,
+    "pc": 19382,
+    "ticks": 9566,
+    "renders": 5238,
+    "scene": 4,
+    "scene_frame": 1140,
+    "muted": false,
+    "graph_ticks_upper_bound": 0,
+    "graph_x": 0,
+    "graph_y": 0,
+    "performance": [
+      {
+        "scene": "BRIEFING",
+        "presented": 215,
+        "vblanks": 216,
+        "fps": 49.77
+      },
+      {
+        "scene": "NEON TUNNEL",
+        "presented": 470,
+        "vblanks": 944,
+        "fps": 24.89
+      },
+      {
+        "scene": "COPPER ROTO",
+        "presented": 955,
+        "vblanks": 1310,
+        "fps": 36.45
+      },
+      {
+        "scene": "STAR SNAKE",
+        "presented": 409,
+        "vblanks": 822,
+        "fps": 24.88
+      },
+      {
+        "scene": "SINE SCROLL",
+        "presented": 1691,
+        "vblanks": 4104,
+        "fps": 20.6
+      },
+      {
+        "scene": "SOLID CUBES",
+        "presented": 926,
+        "vblanks": 928,
+        "fps": 49.89
+      },
+      {
+        "scene": "DOT RUNNER",
+        "presented": 340,
+        "vblanks": 682,
+        "fps": 24.93
+      },
+      {
+        "scene": "DEEP SPACE",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "3D GRAPHS",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "NIGHT TRAIN",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      }
+    ],
+    "music_tick": 1139,
+    "theme": "Ode to Joy",
+    "step": 177,
+    "phase": 9,
+    "voices": [
+      {
+        "channel": 0,
+        "volume": 0,
+        "period": 336,
+        "instrument": 2,
+        "loop_words": 8,
+        "remaining_words": 4,
+        "dma_pointer": 365308,
+        "loop_pointer": 365300
+      },
+      {
+        "channel": 1,
+        "volume": 0,
+        "period": 1695,
+        "instrument": 4,
+        "loop_words": 8,
+        "remaining_words": 4,
+        "dma_pointer": 365340,
+        "loop_pointer": 365332
+      },
+      {
+        "channel": 2,
+        "volume": 0,
+        "period": 283,
+        "instrument": 6,
+        "loop_words": 8,
+        "remaining_words": 3,
+        "dma_pointer": 365374,
+        "loop_pointer": 365364
+      },
+      {
+        "channel": 3,
+        "volume": 0,
+        "period": 428,
+        "instrument": 10,
+        "loop_words": 1,
+        "remaining_words": 1,
+        "dma_pointer": 367060,
+        "loop_pointer": 367060
+      }
+    ]
+  },
+  {
+    "sha256": "30fb7a3737befdbd584d7a611c36f6dadd63c497005479070b595d2d822327d1",
+    "base": 16560,
+    "state": 26850,
+    "pc": 17014,
+    "ticks": 10472,
+    "renders": 5881,
+    "scene": 7,
+    "scene_frame": 4,
+    "muted": false,
+    "graph_ticks_upper_bound": 0,
+    "graph_x": 0,
+    "graph_y": 0,
+    "performance": [
+      {
+        "scene": "BRIEFING",
+        "presented": 215,
+        "vblanks": 216,
+        "fps": 49.77
+      },
+      {
+        "scene": "NEON TUNNEL",
+        "presented": 470,
+        "vblanks": 944,
+        "fps": 24.89
+      },
+      {
+        "scene": "COPPER ROTO",
+        "presented": 955,
+        "vblanks": 1310,
+        "fps": 36.45
+      },
+      {
+        "scene": "STAR SNAKE",
+        "presented": 409,
+        "vblanks": 822,
+        "fps": 24.88
+      },
+      {
+        "scene": "SINE SCROLL",
+        "presented": 1854,
+        "vblanks": 4506,
+        "fps": 20.57
+      },
+      {
+        "scene": "SOLID CUBES",
+        "presented": 1385,
+        "vblanks": 1388,
+        "fps": 49.89
+      },
+      {
+        "scene": "DOT RUNNER",
+        "presented": 340,
+        "vblanks": 682,
+        "fps": 24.93
+      },
+      {
+        "scene": "DEEP SPACE",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "3D GRAPHS",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "NIGHT TRAIN",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      }
+    ],
+    "music_tick": 3,
+    "theme": "Night Flight",
+    "step": 192,
+    "phase": 3,
+    "voices": [
+      {
+        "channel": 0,
+        "volume": 48,
+        "period": 336,
+        "instrument": 3,
+        "loop_words": 8,
+        "remaining_words": 7,
+        "dma_pointer": 365318,
+        "loop_pointer": 365316
+      },
+      {
+        "channel": 1,
+        "volume": 40,
+        "period": 2690,
+        "instrument": 5,
+        "loop_words": 8,
+        "remaining_words": 1,
+        "dma_pointer": 365362,
+        "loop_pointer": 365348
+      },
+      {
+        "channel": 2,
+        "volume": 24,
+        "period": 336,
+        "instrument": 7,
+        "loop_words": 8,
+        "remaining_words": 3,
+        "dma_pointer": 365390,
+        "loop_pointer": 365380
+      },
+      {
+        "channel": 3,
+        "volume": 0,
+        "period": 428,
+        "instrument": 8,
+        "loop_words": 1,
+        "remaining_words": 1,
+        "dma_pointer": 367060,
+        "loop_pointer": 367060
+      }
+    ]
+  },
+  {
+    "sha256": "30fb7a3737befdbd584d7a611c36f6dadd63c497005479070b595d2d822327d1",
+    "base": 16560,
+    "state": 26850,
+    "pc": 17014,
+    "ticks": 12848,
+    "renders": 7822,
+    "scene": 0,
+    "scene_frame": 5,
+    "muted": false,
+    "graph_ticks_upper_bound": 0,
+    "graph_x": 0,
+    "graph_y": 0,
+    "performance": [
+      {
+        "scene": "BRIEFING",
+        "presented": 215,
+        "vblanks": 216,
+        "fps": 49.77
+      },
+      {
+        "scene": "NEON TUNNEL",
+        "presented": 705,
+        "vblanks": 1416,
+        "fps": 24.89
+      },
+      {
+        "scene": "COPPER ROTO",
+        "presented": 1299,
+        "vblanks": 1783,
+        "fps": 36.43
+      },
+      {
+        "scene": "STAR SNAKE",
+        "presented": 409,
+        "vblanks": 822,
+        "fps": 24.88
+      },
+      {
+        "scene": "SINE SCROLL",
+        "presented": 1854,
+        "vblanks": 4506,
+        "fps": 20.57
+      },
+      {
+        "scene": "SOLID CUBES",
+        "presented": 1385,
+        "vblanks": 1388,
+        "fps": 49.89
+      },
+      {
+        "scene": "DOT RUNNER",
+        "presented": 340,
+        "vblanks": 682,
+        "fps": 24.93
+      },
+      {
+        "scene": "DEEP SPACE",
+        "presented": 44,
+        "vblanks": 45,
+        "fps": 48.89
+      },
+      {
+        "scene": "3D GRAPHS",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "NIGHT TRAIN",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      }
+    ],
+    "music_tick": 1236,
+    "theme": "Neon Drive",
+    "step": 123,
+    "phase": 6,
+    "voices": [
+      {
+        "channel": 0,
+        "volume": 36,
+        "period": 336,
+        "instrument": 1,
+        "loop_words": 8,
+        "remaining_words": 8,
+        "dma_pointer": 365284,
+        "loop_pointer": 365284
+      },
+      {
+        "channel": 1,
+        "volume": 16,
+        "period": 2015,
+        "instrument": 5,
+        "loop_words": 8,
+        "remaining_words": 1,
+        "dma_pointer": 365362,
+        "loop_pointer": 365348
+      },
+      {
+        "channel": 2,
+        "volume": 8,
+        "period": 336,
+        "instrument": 7,
+        "loop_words": 8,
+        "remaining_words": 5,
+        "dma_pointer": 365386,
+        "loop_pointer": 365380
+      },
+      {
+        "channel": 3,
+        "volume": 0,
+        "period": 190,
+        "instrument": 10,
+        "loop_words": 1,
+        "remaining_words": 1,
+        "dma_pointer": 367060,
+        "loop_pointer": 367060
+      }
+    ]
+  },
+  {
+    "sha256": "30fb7a3737befdbd584d7a611c36f6dadd63c497005479070b595d2d822327d1",
+    "base": 16560,
+    "state": 26850,
+    "pc": 17014,
+    "ticks": 13964,
+    "renders": 8938,
+    "scene": 0,
+    "scene_frame": 5,
+    "muted": false,
+    "graph_ticks_upper_bound": 0,
+    "graph_x": 0,
+    "graph_y": 0,
+    "performance": [
+      {
+        "scene": "BRIEFING",
+        "presented": 215,
+        "vblanks": 216,
+        "fps": 49.77
+      },
+      {
+        "scene": "NEON TUNNEL",
+        "presented": 705,
+        "vblanks": 1416,
+        "fps": 24.89
+      },
+      {
+        "scene": "COPPER ROTO",
+        "presented": 1299,
+        "vblanks": 1783,
+        "fps": 36.43
+      },
+      {
+        "scene": "STAR SNAKE",
+        "presented": 409,
+        "vblanks": 822,
+        "fps": 24.88
+      },
+      {
+        "scene": "SINE SCROLL",
+        "presented": 1854,
+        "vblanks": 4506,
+        "fps": 20.57
+      },
+      {
+        "scene": "SOLID CUBES",
+        "presented": 1385,
+        "vblanks": 1388,
+        "fps": 49.89
+      },
+      {
+        "scene": "DOT RUNNER",
+        "presented": 340,
+        "vblanks": 682,
+        "fps": 24.93
+      },
+      {
+        "scene": "DEEP SPACE",
+        "presented": 44,
+        "vblanks": 45,
+        "fps": 48.89
+      },
+      {
+        "scene": "3D GRAPHS",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "NIGHT TRAIN",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      }
+    ],
+    "music_tick": 2352,
+    "theme": "Night Flight",
+    "step": 235,
+    "phase": 2,
+    "voices": [
+      {
+        "channel": 0,
+        "volume": 52,
+        "period": 336,
+        "instrument": 3,
+        "loop_words": 8,
+        "remaining_words": 8,
+        "dma_pointer": 365316,
+        "loop_pointer": 365316
+      },
+      {
+        "channel": 1,
+        "volume": 48,
+        "period": 2015,
+        "instrument": 5,
+        "loop_words": 8,
+        "remaining_words": 4,
+        "dma_pointer": 365356,
+        "loop_pointer": 365348
+      },
+      {
+        "channel": 2,
+        "volume": 32,
+        "period": 336,
+        "instrument": 7,
+        "loop_words": 8,
+        "remaining_words": 1,
+        "dma_pointer": 365394,
+        "loop_pointer": 365380
+      },
+      {
+        "channel": 3,
+        "volume": 0,
+        "period": 190,
+        "instrument": 10,
+        "loop_words": 1,
+        "remaining_words": 1,
+        "dma_pointer": 367060,
+        "loop_pointer": 367060
+      }
+    ]
+  },
+  {
+    "sha256": "30fb7a3737befdbd584d7a611c36f6dadd63c497005479070b595d2d822327d1",
+    "base": 16560,
+    "state": 26850,
+    "pc": 17014,
+    "ticks": 14656,
+    "renders": 9630,
+    "scene": 0,
+    "scene_frame": 5,
+    "muted": false,
+    "graph_ticks_upper_bound": 0,
+    "graph_x": 0,
+    "graph_y": 0,
+    "performance": [
+      {
+        "scene": "BRIEFING",
+        "presented": 215,
+        "vblanks": 216,
+        "fps": 49.77
+      },
+      {
+        "scene": "NEON TUNNEL",
+        "presented": 705,
+        "vblanks": 1416,
+        "fps": 24.89
+      },
+      {
+        "scene": "COPPER ROTO",
+        "presented": 1299,
+        "vblanks": 1783,
+        "fps": 36.43
+      },
+      {
+        "scene": "STAR SNAKE",
+        "presented": 409,
+        "vblanks": 822,
+        "fps": 24.88
+      },
+      {
+        "scene": "SINE SCROLL",
+        "presented": 1854,
+        "vblanks": 4506,
+        "fps": 20.57
+      },
+      {
+        "scene": "SOLID CUBES",
+        "presented": 1385,
+        "vblanks": 1388,
+        "fps": 49.89
+      },
+      {
+        "scene": "DOT RUNNER",
+        "presented": 340,
+        "vblanks": 682,
+        "fps": 24.93
+      },
+      {
+        "scene": "DEEP SPACE",
+        "presented": 44,
+        "vblanks": 45,
+        "fps": 48.89
+      },
+      {
+        "scene": "3D GRAPHS",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "NIGHT TRAIN",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      }
+    ],
+    "music_tick": 484,
+    "theme": "Korobeiniki",
+    "step": 48,
+    "phase": 4,
+    "voices": [
+      {
+        "channel": 0,
+        "volume": 44,
+        "period": 449,
+        "instrument": 0,
+        "loop_words": 8,
+        "remaining_words": 2,
+        "dma_pointer": 365280,
+        "loop_pointer": 365268
+      },
+      {
+        "channel": 1,
+        "volume": 32,
+        "period": 2690,
+        "instrument": 4,
+        "loop_words": 8,
+        "remaining_words": 5,
+        "dma_pointer": 365338,
+        "loop_pointer": 365332
+      },
+      {
+        "channel": 2,
+        "volume": 16,
+        "period": 566,
+        "instrument": 6,
+        "loop_words": 8,
+        "remaining_words": 5,
+        "dma_pointer": 365370,
+        "loop_pointer": 365364
+      },
+      {
+        "channel": 3,
+        "volume": 0,
+        "period": 428,
+        "instrument": 8,
+        "loop_words": 1,
+        "remaining_words": 1,
+        "dma_pointer": 367060,
+        "loop_pointer": 367060
+      }
+    ]
+  },
+  {
+    "sha256": "30fb7a3737befdbd584d7a611c36f6dadd63c497005479070b595d2d822327d1",
+    "base": 16560,
+    "state": 26850,
+    "pc": 17014,
+    "ticks": 14658,
+    "renders": 9632,
+    "scene": 0,
+    "scene_frame": 5,
+    "muted": false,
+    "graph_ticks_upper_bound": 0,
+    "graph_x": 0,
+    "graph_y": 0,
+    "performance": [
+      {
+        "scene": "BRIEFING",
+        "presented": 215,
+        "vblanks": 216,
+        "fps": 49.77
+      },
+      {
+        "scene": "NEON TUNNEL",
+        "presented": 705,
+        "vblanks": 1416,
+        "fps": 24.89
+      },
+      {
+        "scene": "COPPER ROTO",
+        "presented": 1299,
+        "vblanks": 1783,
+        "fps": 36.43
+      },
+      {
+        "scene": "STAR SNAKE",
+        "presented": 409,
+        "vblanks": 822,
+        "fps": 24.88
+      },
+      {
+        "scene": "SINE SCROLL",
+        "presented": 1854,
+        "vblanks": 4506,
+        "fps": 20.57
+      },
+      {
+        "scene": "SOLID CUBES",
+        "presented": 1385,
+        "vblanks": 1388,
+        "fps": 49.89
+      },
+      {
+        "scene": "DOT RUNNER",
+        "presented": 340,
+        "vblanks": 682,
+        "fps": 24.93
+      },
+      {
+        "scene": "DEEP SPACE",
+        "presented": 44,
+        "vblanks": 45,
+        "fps": 48.89
+      },
+      {
+        "scene": "3D GRAPHS",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "NIGHT TRAIN",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      }
+    ],
+    "music_tick": 486,
+    "theme": "Korobeiniki",
+    "step": 48,
+    "phase": 6,
+    "voices": [
+      {
+        "channel": 0,
+        "volume": 36,
+        "period": 449,
+        "instrument": 0,
+        "loop_words": 8,
+        "remaining_words": 4,
+        "dma_pointer": 365276,
+        "loop_pointer": 365268
+      },
+      {
+        "channel": 1,
+        "volume": 16,
+        "period": 2690,
+        "instrument": 4,
+        "loop_words": 8,
+        "remaining_words": 3,
+        "dma_pointer": 365342,
+        "loop_pointer": 365332
+      },
+      {
+        "channel": 2,
+        "volume": 8,
+        "period": 566,
+        "instrument": 6,
+        "loop_words": 8,
+        "remaining_words": 7,
+        "dma_pointer": 365366,
+        "loop_pointer": 365364
+      },
+      {
+        "channel": 3,
+        "volume": 0,
+        "period": 428,
+        "instrument": 8,
+        "loop_words": 1,
+        "remaining_words": 1,
+        "dma_pointer": 367060,
+        "loop_pointer": 367060
+      }
+    ]
+  },
+  {
+    "sha256": "30fb7a3737befdbd584d7a611c36f6dadd63c497005479070b595d2d822327d1",
+    "base": 16560,
+    "state": 26850,
+    "pc": 17014,
+    "ticks": 15692,
+    "renders": 10666,
+    "scene": 0,
+    "scene_frame": 5,
+    "muted": false,
+    "graph_ticks_upper_bound": 0,
+    "graph_x": 0,
+    "graph_y": 0,
+    "performance": [
+      {
+        "scene": "BRIEFING",
+        "presented": 215,
+        "vblanks": 216,
+        "fps": 49.77
+      },
+      {
+        "scene": "NEON TUNNEL",
+        "presented": 705,
+        "vblanks": 1416,
+        "fps": 24.89
+      },
+      {
+        "scene": "COPPER ROTO",
+        "presented": 1299,
+        "vblanks": 1783,
+        "fps": 36.43
+      },
+      {
+        "scene": "STAR SNAKE",
+        "presented": 409,
+        "vblanks": 822,
+        "fps": 24.88
+      },
+      {
+        "scene": "SINE SCROLL",
+        "presented": 1854,
+        "vblanks": 4506,
+        "fps": 20.57
+      },
+      {
+        "scene": "SOLID CUBES",
+        "presented": 1385,
+        "vblanks": 1388,
+        "fps": 49.89
+      },
+      {
+        "scene": "DOT RUNNER",
+        "presented": 340,
+        "vblanks": 682,
+        "fps": 24.93
+      },
+      {
+        "scene": "DEEP SPACE",
+        "presented": 44,
+        "vblanks": 45,
+        "fps": 48.89
+      },
+      {
+        "scene": "3D GRAPHS",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "NIGHT TRAIN",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      }
+    ],
+    "music_tick": 1520,
+    "theme": "Ode to Joy",
+    "step": 152,
+    "phase": 0,
+    "voices": [
+      {
+        "channel": 0,
+        "volume": 48,
+        "period": 424,
+        "instrument": 2,
+        "loop_words": 8,
+        "remaining_words": 2,
+        "dma_pointer": 365312,
+        "loop_pointer": 365300
+      },
+      {
+        "channel": 1,
+        "volume": 60,
+        "period": 1695,
+        "instrument": 4,
+        "loop_words": 8,
+        "remaining_words": 7,
+        "dma_pointer": 365334,
+        "loop_pointer": 365332
+      },
+      {
+        "channel": 2,
+        "volume": 36,
+        "period": 212,
+        "instrument": 6,
+        "loop_words": 8,
+        "remaining_words": 6,
+        "dma_pointer": 365368,
+        "loop_pointer": 365364
+      },
+      {
+        "channel": 3,
+        "volume": 60,
+        "period": 428,
+        "instrument": 8,
+        "loop_words": 1,
+        "remaining_words": 176,
+        "dma_pointer": 365556,
+        "loop_pointer": 367060
+      }
+    ]
+  },
+  {
+    "sha256": "30fb7a3737befdbd584d7a611c36f6dadd63c497005479070b595d2d822327d1",
+    "base": 16560,
+    "state": 26850,
+    "pc": 17014,
+    "ticks": 16560,
+    "renders": 11534,
+    "scene": 0,
+    "scene_frame": 5,
+    "muted": true,
+    "graph_ticks_upper_bound": 0,
+    "graph_x": 0,
+    "graph_y": 0,
+    "performance": [
+      {
+        "scene": "BRIEFING",
+        "presented": 215,
+        "vblanks": 216,
+        "fps": 49.77
+      },
+      {
+        "scene": "NEON TUNNEL",
+        "presented": 705,
+        "vblanks": 1416,
+        "fps": 24.89
+      },
+      {
+        "scene": "COPPER ROTO",
+        "presented": 1299,
+        "vblanks": 1783,
+        "fps": 36.43
+      },
+      {
+        "scene": "STAR SNAKE",
+        "presented": 409,
+        "vblanks": 822,
+        "fps": 24.88
+      },
+      {
+        "scene": "SINE SCROLL",
+        "presented": 1854,
+        "vblanks": 4506,
+        "fps": 20.57
+      },
+      {
+        "scene": "SOLID CUBES",
+        "presented": 1385,
+        "vblanks": 1388,
+        "fps": 49.89
+      },
+      {
+        "scene": "DOT RUNNER",
+        "presented": 340,
+        "vblanks": 682,
+        "fps": 24.93
+      },
+      {
+        "scene": "DEEP SPACE",
+        "presented": 44,
+        "vblanks": 45,
+        "fps": 48.89
+      },
+      {
+        "scene": "3D GRAPHS",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "NIGHT TRAIN",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      }
+    ],
+    "music_tick": 2388,
+    "theme": "Night Flight",
+    "step": 238,
+    "phase": 8,
+    "voices": [
+      {
+        "channel": 0,
+        "volume": 0,
+        "period": 252,
+        "instrument": 3,
+        "loop_words": 8,
+        "remaining_words": 2,
+        "dma_pointer": 365328,
+        "loop_pointer": 365316
+      },
+      {
+        "channel": 1,
+        "volume": 0,
+        "period": 1008,
+        "instrument": 5,
+        "loop_words": 8,
+        "remaining_words": 7,
+        "dma_pointer": 365350,
+        "loop_pointer": 365348
+      },
+      {
+        "channel": 2,
+        "volume": 0,
+        "period": 252,
+        "instrument": 7,
+        "loop_words": 8,
+        "remaining_words": 5,
+        "dma_pointer": 365386,
+        "loop_pointer": 365380
+      },
+      {
+        "channel": 3,
+        "volume": 0,
+        "period": 190,
+        "instrument": 10,
+        "loop_words": 1,
+        "remaining_words": 1,
+        "dma_pointer": 367060,
+        "loop_pointer": 367060
+      }
+    ]
+  },
+  {
+    "sha256": "30fb7a3737befdbd584d7a611c36f6dadd63c497005479070b595d2d822327d1",
+    "base": 16560,
+    "state": 26850,
+    "pc": 17014,
+    "ticks": 18162,
+    "renders": 13136,
+    "scene": 0,
+    "scene_frame": 5,
+    "muted": false,
+    "graph_ticks_upper_bound": 0,
+    "graph_x": 0,
+    "graph_y": 0,
+    "performance": [
+      {
+        "scene": "BRIEFING",
+        "presented": 215,
+        "vblanks": 216,
+        "fps": 49.77
+      },
+      {
+        "scene": "NEON TUNNEL",
+        "presented": 705,
+        "vblanks": 1416,
+        "fps": 24.89
+      },
+      {
+        "scene": "COPPER ROTO",
+        "presented": 1299,
+        "vblanks": 1783,
+        "fps": 36.43
+      },
+      {
+        "scene": "STAR SNAKE",
+        "presented": 409,
+        "vblanks": 822,
+        "fps": 24.88
+      },
+      {
+        "scene": "SINE SCROLL",
+        "presented": 1854,
+        "vblanks": 4506,
+        "fps": 20.57
+      },
+      {
+        "scene": "SOLID CUBES",
+        "presented": 1385,
+        "vblanks": 1388,
+        "fps": 49.89
+      },
+      {
+        "scene": "DOT RUNNER",
+        "presented": 340,
+        "vblanks": 682,
+        "fps": 24.93
+      },
+      {
+        "scene": "DEEP SPACE",
+        "presented": 44,
+        "vblanks": 45,
+        "fps": 48.89
+      },
+      {
+        "scene": "3D GRAPHS",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      },
+      {
+        "scene": "NIGHT TRAIN",
+        "presented": 0,
+        "vblanks": 0,
+        "fps": null
+      }
+    ],
+    "music_tick": 1430,
+    "theme": "Ode to Joy",
+    "step": 143,
+    "phase": 0,
+    "paused": true,
+    "voices": [
+      {
+        "channel": 0,
+        "volume": 0,
+        "period": 377,
+        "instrument": 2,
+        "loop_words": 8,
+        "remaining_words": 4,
+        "dma_pointer": 365308,
+        "loop_pointer": 365300
+      },
+      {
+        "channel": 1,
+        "volume": 0,
+        "period": 1131,
+        "instrument": 4,
+        "loop_words": 8,
+        "remaining_words": 3,
+        "dma_pointer": 365342,
+        "loop_pointer": 365332
+      },
+      {
+        "channel": 2,
+        "volume": 0,
+        "period": 449,
+        "instrument": 6,
+        "loop_words": 8,
+        "remaining_words": 2,
+        "dma_pointer": 365376,
+        "loop_pointer": 365364
+      },
+      {
+        "channel": 3,
+        "volume": 0,
+        "period": 190,
+        "instrument": 10,
+        "loop_words": 1,
+        "remaining_words": 1,
+        "dma_pointer": 367060,
+        "loop_pointer": 367060
+      }
+    ]
+  }
+]
